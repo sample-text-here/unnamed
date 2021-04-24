@@ -70,6 +70,7 @@ function parseExpr(list, single = false) {
 	while(!list.done()) {
 		const token = list.next();
 		if(token.type === "word") {	
+			if(top(stack)?.type === "var") top(stack).type = "keyword";  
 			stack.push(node("var", token.value));
 			unary = "post";
 		} else if(token.type === "number") {
@@ -85,14 +86,21 @@ function parseExpr(list, single = false) {
 		} else if(token.value === ",") {
 			if(single) break;
 			while(opStack.length > 0 && top(opStack).name !== "(") popOp();
+			stack.push({ type: "spacer" });
 			unary = "pre";
 		} else if(token.value === ")") {
 			while(opStack.length > 0 && top(opStack).name !== "(") popOp();
 			if(top(opStack).name === "(") opStack.pop();
 			if(top(opStack).isFunc) {
 				const op = opStack.pop();
-				const args = [];
-				while(stack.length > 0 && top(stack).type !== "funcSep") args.push(stack.pop());
+				const args = [];				
+				while(stack.length > 0 && top(stack).type !== "funcSep") {
+					if(top(stack).type === "spacer") {
+						stack.pop();
+					} else {
+						args.push(stack.pop());
+					}
+				}
 				if(top(stack).type === "funcSep") stack.pop();
 				stack.push(opNode(op, args));
 			}
@@ -117,7 +125,7 @@ function parseExpr(list, single = false) {
 	}
 	
 	while(opStack.length > 0) popOp();
-	return stack;
+	return stack.filter(i => i.type !== "spacer");
 
 	function findOp(op) {
 		for(let i of ops) {
@@ -135,18 +143,20 @@ function parseExpr(list, single = false) {
 
 	function popOp() {
 		const op = opStack.pop();
-		const args = numArgs(op.type);
-		if(args > stack.length) throw "not enough args";
-		stack.push(opNode(op.internal ?? op.name, stack.splice(-args, args)));
+		const argCount = numArgs(op.type);
+		if(argCount > stack.length) throw "not enough args";
+		const args = [];
+		for(let i = 0; i < argCount; i++) {
+			if(top(stack).type === "spacer") throw "no";
+			args.push(stack.pop());
+		}
+		stack.push(opNode(op.internal ?? op.name, args));
 	}
 }
 
 function generate(tokens) {
 	const parts = [];
-	while(!tokens.done()) {
-		// tokens.peek()
-		parts.push(...parseExpr(tokens));
-	}
+	while(!tokens.done()) parts.push(...parseExpr(tokens));
 	// console.log(util.isPointless(parts[0]));
 	return parts;
 }

@@ -46,8 +46,8 @@ function number(eq) {
 
 function str(eq) {
 	const type = eq.next();
-	if(!isQuote(type)) throw "bad quote";
-	let buffer = "";
+	let buffer = type;
+	if(!isQuote(buffer)) throw "bad quote";
 	while(true) {
 		const char = eq.next();
 		if(!char) throw "unterminated string";
@@ -58,6 +58,7 @@ function str(eq) {
 			buffer += char;
 		}
 	}
+	buffer += type;
 	return token("string", buffer);
 }
 

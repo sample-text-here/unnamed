@@ -1,0 +1,12 @@
+// single line comment
+
+/* block comment */
+
+/*
+multiple
+lines
+*/
+
+/* nested
+	/* block */
+comments */

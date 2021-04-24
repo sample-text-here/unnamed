@@ -9,8 +9,10 @@ function main(code) {
 	const gen = gentree(new util.Generator(tokens));
 	console.log("tree:", require("util").inspect(gen, false, 8, true));
 	util.simplify(gen);
-	console.log("optimized:", gen);
+	console.log("optimized:", require("util").inspect(gen, false, 8, true));
 }
 
-main("1+1,2+2");
+main(`
+i32 x = 3, y = 5;
+`);
 // main("sin(1)");
