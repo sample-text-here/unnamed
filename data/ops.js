@@ -1,4 +1,4 @@
-module.exports = [
+module.exports.ops = [
 	// assignments
 	{
 		name: "=",
@@ -174,4 +174,19 @@ module.exports = [
 		order: 14,
 		type: "binary",
 	},
+];
+
+module.exports.calc = {
+	"+": (a, b) => a + b,
+	"*": (a, b) => a * b,
+	"**": (a, b) => a ** b,
+	"/": (a, b) => a / b,
+	"%": (a, b) => a % b,
+	"-": (...args) => args.length === 1 ? -args[0] : args[0] + args[1],
+};
+
+module.exports.usefulIfSingle = [
+	"++",	"--",	"=",	"+=",	"-=",
+	"*=",	"/=",	"**=",	"%=",	"&=",
+	"|=",	"^=",	"||=",	"&&="
 ];

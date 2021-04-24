@@ -128,6 +128,8 @@ function tokenize(gen) {
 			tokens.push(word(gen));
 		} else if(isQuote(char)) {
 			tokens.push(str(gen));
+		} else if(char === ";" || char === "\n") {
+			tokens.push(token("stop", gen.next()));
 		} else if(isWhitespace(char)) {
 			gen.next();
 		} else if(char === "/") {

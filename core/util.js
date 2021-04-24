@@ -1,4 +1,4 @@
-const { color } = require("../data/color.js")
+const { calc, usefulIfSingle } = require("../data/ops.js");
 
 class Generator {
 	constructor(iter) {
@@ -11,46 +11,50 @@ class Generator {
 	done() { return this.i >= this.data.length }
 }
 
-function getPos(gen) {
-	const str = normalize(gen.data);
-	let index = 0, row = 1, col = 1;
-	
-	if(gen.data instanceof Array) {
-		for(let i = 0; i < gen.i; i++) index += gen.data[i].length;
+function removeComments(tokens) {
+	const clean = [];
+	for(let i of tokens) {
+		if(i.type !== "comment") clean.push(i);
 	}
-	
-	for(let i = 0; i < index; i++) {
-		col++;
-		if(str[i] === '\n') {
-			col = 1;
-			row++;
+	return clean;
+}
+
+function simplify(tree) {
+	for(let i of tree) {
+		if(i.type === "block") {
+			simplify(i.content);
+		} else if(i.type === "op") {
+			reduceNode(i);
 		}
 	}
-	
-	return [row, col];
+
+	function reduceNode(node) {
+		let canReduce = true;
+		for(let i of node.args) {
+			if(i.type === "op") {
+				reduceNode(i);
+				if(i.type === "op") canReduce = false;
+			} else if(i.type !== "number") {
+				canReduce = false;
+			}
+		}
+		if(!canReduce) return;
+		if(calc.hasOwnProperty(node.op)) {
+			node.type = "number";
+			node.value = calc[node.op](...node.args.map(i => i.value));
+			delete node.args;
+			delete node.op;
+		}
+	}
 }
 
-function normalize(data) {
-	return (data instanceof Array) ? data.join("") : data.toString();
+function isPointless(node) {
+	if(node.type === "number") return true;
+	if(node.type === "var") return true;
+	if(node.type === "op") {
+		if(!usefulIfSingle.includes(node.name)) return true;
+	}
+	return false;
 }
 
-function displayCurrent(gen) {
-	const start = normalize(gen.data.slice(gen.i - 10, gen.i)).slice(-10);
-	const main = normalize(gen.next());
-	const end = normalize(gen.data.slice(gen.i, gen.i + 10)).slice(0, 10);
-	const arrows = " ".repeat(start.length) + "^".repeat(main.length);
-	const pos = getPos(gen).join(":");
-	return `at ${pos}\n${start}${main}${end}\n${arrows}`;
-}
-
-function handleErr(gen) {
-	const msg = `${color("error!", "red")}\n${displayCurrent(gen)}\n`;
-	process.stderr.write(msg);
-}
-
-function handleWarn(gen) {
-	const msg = `${color("warning!", "yellow")}\n${displayCurrent(gen)}\n`;
-	process.stderr.write(msg);
-}
-
-module.exports = { Generator, handleErr, handleWarn };
+module.exports = { Generator, removeComments, simplify, isPointless };
