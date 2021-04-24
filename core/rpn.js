@@ -1,4 +1,4 @@
-const ops = require("./ops.js");
+const ops = require("../data/ops.js");
 const top = arr => arr[arr.length - 1];
 const dataToken = (type, value) => ({ type, value });
 const opToken = (op, args) => ({ op, args });
@@ -89,12 +89,3 @@ function RPN(list) {
 }
 
 module.exports = RPN;
-
-// const tokens = require("./tokenize.js")("max(5, 4)");
-// const gen = {
-	// i: 0,
-	// next: () => tokens[gen.i++],
-	// peek: () => tokens[gen.i],
-// };
-// 
-// console.log(require("util").inspect(RPN(gen), false, 8, true));

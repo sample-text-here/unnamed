@@ -118,14 +118,9 @@ function comment(eq) {
 	return buf;
 }
 
-function tokenize(eq) {
+function tokenize(gen) {
 	const tokens = [];
-	const gen = {
-		i: 0,
-		next: () => eq[gen.i++],
-		peek: () => eq[gen.i],
-	};
-	while(gen.i < eq.length) {
+	while(!gen.done()) {
 		const char = gen.peek();
 		if(isDigit(char)) {
 			tokens.push(number(gen));
