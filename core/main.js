@@ -12,7 +12,9 @@ function main(code) {
 	console.log("optimized:", require("util").inspect(gen, false, 8, true));
 }
 
-main(`
-i32 x = 3, y = 5;
-`);
+// main(`i32 a;`);
+// main(`i32 a, b;`);
+// main(`i32 a = 3, b = 5;`);
+// main(`i32 foo();`);
+main(`i32 add(i32 a, i32 b);`);
 // main("sin(1)");

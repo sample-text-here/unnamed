@@ -25,6 +25,8 @@ function simplify(tree) {
 			simplify(i.content);
 		} else if(i.type === "op") {
 			reduceNode(i);
+		} else if(i.type === "declaration") {
+			i.expressions.forEach(reduceNode);
 		}
 	}
 

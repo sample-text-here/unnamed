@@ -1,5 +1,4 @@
-// const util = require("./util.js");
-// const types = require("../data/types.js");
+const { Generator } = require("./util.js");
 const { ops } = require("../data/ops.js");
 const top = arr => arr[arr.length - 1];
 const node = (type, value) => ({ type, value });
@@ -11,56 +10,6 @@ function numArgs(type) {
 	if(type.startsWith("ternary")) return 3;
 	return 0;
 }
-
-// function func(list, name, returnType) {
-	// if(list.next()?.value !== "(") throw "bad function";
-	// const args = [];
-	// while(list.peek()?.value !== ")") {
-		// args.push(declareSingle(list));
-		// if(list.peek()?.value !== ",") break;
-		// list.next();
-	// }
-	// list.next();
-	// return { type: "function", name, args, returnType };
-// }
-// 
-// function declareMultiple(list) {
-	// const declareType = list.next();
-	// if(declareType.type !== "word") throw "bad type";
-	// const declarations = [readDec(list)];
-	// if(list.peek()?.value === "(") {
-		// return func(list, declarations[0].name, declareType.value);
-	// }
-	// while(list.peek()?.value === ",") {
-		// list.next();
-		// declarations.push(readDec(list));
-	// }
-	// return declarations;
-// }
-// 
-// function declareSingle(list) {
-	// const declareType = list.next();
-	// if(declareType.type !== "word") throw "bad type";
-	// const declaration = readDec(list);
-	// if(list.peek()?.value === "(") {
-		// return func(list, declaration.name, declareType.value);
-	// }
-	// return { type: "declareSingle", declaration };
-// }
-// 
-// function readDec(list) {
-	// const name = list.next();
-	// if(!name) throw "missing name";
-	// if(name.type !== "word") throw "bad name";
-// 
-	// let value = null;
-	// if(list.peek().value === "=") {
-		// list.next();
-		// value = readValue(list);
-	// }
-// 
-	// return { name: name.value, value };
-// }
 
 function parseExpr(list, single = false) {
 	const stack = [];
@@ -117,7 +66,7 @@ function parseExpr(list, single = false) {
 			}
 			opStack.push(thisOp);
 			unary = "pre";
-		} else if(token.type === "stop") {
+		} else if(token.type === "stop" || token.type === "block") {
 			break;
 		} else {
 			throw "what even is this";
@@ -154,11 +103,78 @@ function parseExpr(list, single = false) {
 	}
 }
 
+function declarations(parsed) {
+	const transformed = [];
+	while(!parsed.done()) {
+		const part = parsed.peek();
+		if(part.type === "keyword") {
+			transformed.push(getType());
+		} else if(part.type === "seperator") {
+			parsed.next(); 
+		} else {
+			transformed.push(parsed.next());
+		}
+	}
+	return transformed;
+
+	function getType() {
+		const modifiers = [];
+		let type = parsed.next().value;
+		while(!parsed.done() && parsed.peek().type === "keyword") {
+			modifiers.push(type);
+			type = parsed.next().value;
+		}
+		return { modifiers, type, vars: getVars() };
+	}
+
+	function getVars() {
+		const vars = [];
+		while(!parsed.done()) {
+			const next = parsed.peek();
+			if(next.type === "var" || next.type === "op") {
+				if(next.type === "op" && next.op.isFunc) {
+					vars.push({
+						name: next.op.name,
+						args: declarations(new Generator(next.args.reverse())),
+						isFunc: true,
+					});
+					parsed.next();
+					break;
+				}
+				vars.push(parsed.next());
+			} else {
+				break;
+			}
+		}
+		return vars;
+	}
+}
+
+/*
+{
+  type: 'op',
+  op: { name: 'add', isFunc: true },
+  args: [
+    { type: 'var', value: 'b' },
+    { type: 'keyword', value: 'i32' },
+    { type: 'var', value: 'a' },
+    { type: 'keyword', value: 'i32' }
+  ]
+}
+*/
+
 function generate(tokens) {
 	const parts = [];
-	while(!tokens.done()) parts.push(...parseExpr(tokens));
-	// console.log(util.isPointless(parts[0]));
-	return parts;
+	while(!tokens.done()) {
+		parts.push(...parseExpr(tokens));
+		parts.push({ type: "seperator" });
+		if(tokens.peek() === '{') {
+			parts.push({ type: "block", content: generate(tokens) });
+		} else if(tokens.peek() === '}') {
+			break;
+		}
+	}
+	return declarations(new Generator(parts));
 }
 
 module.exports = generate;

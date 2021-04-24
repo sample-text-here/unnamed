@@ -135,6 +135,8 @@ function tokenize(gen) {
 			gen.next();
 		} else if(char === "/") {
 			tokens.push(slash(gen));
+		} else if(char === "{" || char === "}") {
+			tokens.push(token("block", char));
 		} else {
 			tokens.push(symbol(gen));
 		};
