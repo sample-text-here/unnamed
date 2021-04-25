@@ -1,4 +1,4 @@
-const { Generator } = require("./util.js");
+const { Generator, isPointless, events } = require("./util.js");
 const { ops } = require("../data/ops.js");
 const top = arr => arr[arr.length - 1];
 const node = (type, value) => ({ type, value });
@@ -51,7 +51,7 @@ function parseExpr(list, single = false) {
 					}
 				}
 				if(top(stack).type === "funcSep") stack.pop();
-				stack.push(opNode(op, args));
+				stack.push({ type: "function", name: op.name, args });
 			}
 			unary = "pre";
 		} else if(token.type === "symbol") {
@@ -66,7 +66,10 @@ function parseExpr(list, single = false) {
 			}
 			opStack.push(thisOp);
 			unary = "pre";
-		} else if(token.type === "stop" || token.type === "block") {
+		} else if(token.type === "stop") {
+			break;
+		} else if(token.type === "block") {
+			list.i--;
 			break;
 		} else {
 			throw "what even is this";
@@ -104,77 +107,76 @@ function parseExpr(list, single = false) {
 }
 
 function declarations(parsed) {
+	const isFunc = node => node.type === "op" && node.op.isFunc;
 	const transformed = [];
 	while(!parsed.done()) {
 		const part = parsed.peek();
 		if(part.type === "keyword") {
-			transformed.push(getType());
+			const type = readType();
+			const read = isFunc(parsed.peek())
+				? readFunc()
+				: readVars();
+			transformed.push({...type, ...read});
 		} else if(part.type === "seperator") {
-			parsed.next(); 
+			parsed.next();
 		} else {
 			transformed.push(parsed.next());
 		}
 	}
 	return transformed;
 
-	function getType() {
+	function readType(obj) {
 		const modifiers = [];
-		let type = parsed.next().value;
+		let varType = parsed.next().value;
 		while(!parsed.done() && parsed.peek().type === "keyword") {
 			modifiers.push(type);
-			type = parsed.next().value;
+			varType = parsed.next().value;
 		}
-		return { modifiers, type, vars: getVars() };
+		return { modifiers, varType };
 	}
 
-	function getVars() {
+	function readFunc(obj) {
+		const next = parsed.next();
+		return {
+			name: next.op.name,
+			args: declarations(new Generator(next.args.reverse())),
+			type: "declareFunction",
+		};
+	}
+
+	function readVars(obj) {
 		const vars = [];
 		while(!parsed.done()) {
 			const next = parsed.peek();
-			if(next.type === "var" || next.type === "op") {
-				if(next.type === "op" && next.op.isFunc) {
-					vars.push({
-						name: next.op.name,
-						args: declarations(new Generator(next.args.reverse())),
-						isFunc: true,
-					});
-					parsed.next();
-					break;
-				}
-				vars.push(parsed.next());
-			} else {
-				break;
-			}
+			if(next.type !== "var" && next.type !== "op") break;
+			if(next.type === "op" && next.op.isFunc) throw "why would this work";
+			vars.push(parsed.next());
 		}
-		return vars;
+		return { vars, type: "declareVariable" };
 	}
 }
-
-/*
-{
-  type: 'op',
-  op: { name: 'add', isFunc: true },
-  args: [
-    { type: 'var', value: 'b' },
-    { type: 'keyword', value: 'i32' },
-    { type: 'var', value: 'a' },
-    { type: 'keyword', value: 'i32' }
-  ]
-}
-*/
 
 function generate(tokens) {
 	const parts = [];
 	while(!tokens.done()) {
 		parts.push(...parseExpr(tokens));
 		parts.push({ type: "seperator" });
-		if(tokens.peek() === '{') {
+		const token = tokens.peek();
+		if(!token) break;
+		if(token.value === '{') {
+			tokens.next();
 			parts.push({ type: "block", content: generate(tokens) });
-		} else if(tokens.peek() === '}') {
+		} else if(token.value === '}') {
 			break;
 		}
 	}
-	return declarations(new Generator(parts));
+	const assembled = declarations(new Generator(parts));
+	for(let i of assembled) {
+		if(isPointless(i)) {
+			events.emit("warn", { type: "poinless", gen: tokens });
+		}
+	}
+	return assembled;
 }
 
 module.exports = generate;

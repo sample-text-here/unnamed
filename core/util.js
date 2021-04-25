@@ -1,3 +1,4 @@
+const EventEmmitter = require("events");
 const { calc, usefulIfSingle } = require("../data/ops.js");
 
 class Generator {
@@ -53,10 +54,17 @@ function simplify(tree) {
 function isPointless(node) {
 	if(node.type === "number") return true;
 	if(node.type === "var") return true;
+	if(node.type === "block" && node.content.length === 0) return true;
 	if(node.type === "op") {
 		if(!usefulIfSingle.includes(node.name)) return true;
 	}
 	return false;
 }
 
-module.exports = { Generator, removeComments, simplify, isPointless };
+module.exports = {
+	Generator,
+	removeComments,
+	simplify,
+	isPointless,
+	events: new EventEmmitter(),
+};
