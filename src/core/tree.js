@@ -1,5 +1,6 @@
 const { Generator, isPointless, events } = require("./util.js");
 const { ops } = require("../data/ops.js");
+const keywords = require("../data/keywords.js");
 const top = arr => arr[arr.length - 1];
 const node = (type, value) => ({ type, value });
 const opNode = (op, args) => ({ type: "op", op, args });
@@ -21,7 +22,7 @@ function parseExpr(list, single = false) {
 		const token = list.next();
 		if(token.type === "word") {	
 			if(!seperated && top(stack).type === "var") {
-				top(stack).type = "keyword";
+				top(stack).type = "word";
 			}
 			stack.push(node("var", token.value));
 			unary = "post";
@@ -43,8 +44,8 @@ function parseExpr(list, single = false) {
 			unary = "pre";
 		} else if(token.value === ")") {
 			while(opStack.length > 0 && top(opStack).name !== "(") popOp();
-			if(top(opStack).name === "(") opStack.pop();
-			if(top(opStack).isFunc) {
+			if(top(opStack)?.name === "(") opStack.pop();
+			if(top(opStack)?.isFunc) {
 				const op = opStack.pop();
 				const args = [];				
 				while(stack.length > 0 && top(stack).type !== "funcSep") {
@@ -129,7 +130,7 @@ function declarations(parsed) {
 	const transformed = [];
 	while(!parsed.done()) {
 		const part = parsed.peek();
-		if(part.type === "keyword") {
+		if(part.type === "word") {
 			const type = readType();
 			const read = isFunc(parsed.peek())
 				? readFunc()
@@ -146,8 +147,8 @@ function declarations(parsed) {
 	function readType() {
 		const modifiers = [];
 		let varType = parsed.next().value;
-		while(!parsed.done() && parsed.peek().type === "keyword") {
-			modifiers.push(type);
+		while(!parsed.done() && parsed.peek().type === "word") {
+			modifiers.push(varType);
 			varType = parsed.next().value;
 		}
 		return { modifiers, varType };
@@ -167,14 +168,14 @@ function declarations(parsed) {
 		const names = [];
 		while(!parsed.done()) {
 			const next = parsed.peek();
-			if(next.type === "array") {
-				if(!top(vars)) throw "why";
-				if(!next.values[0]) throw "no length";
-				top(vars).isArray = true;
-				top(vars).length = next.values[0];
-				parsed.next();
-				continue;
-			}
+			// if(next.type === "array") {
+				// if(!top(vars)) throw "why";
+				// if(!next.values[0]) throw "no length";
+				// top(vars).isArray = true;
+				// top(vars).length = next.values[0];
+				// parsed.next();
+				// continue;
+			// }
 			if(next.type !== "var" && next.type !== "op") break;
 			if(next.type === "op" && next.op.isFunc) throw "why would this work";
 			vars.push(parsed.next());
@@ -186,15 +187,18 @@ function declarations(parsed) {
 function generate(tokens) {
 	const parts = [];
 	while(!tokens.done()) {
-		parts.push(...parseExpr(tokens));
-		parts.push({ type: "seperator" });
 		const token = tokens.peek();
-		if(!token) break;
 		if(token.value === '{') {
 			tokens.next();
 			parts.push({ type: "block", content: generate(tokens) });
 		} else if(token.value === '}') {
 			break;
+		} else if(keywords.includes(token.value)) {
+			parts.push({ type: "keyword", value: tokens.next().value });
+			parts.push({ type: "seperator" });
+		} else {	
+			parts.push(...parseExpr(tokens));
+			parts.push({ type: "seperator" });
 		}
 	}
 	const assembled = declarations(new Generator(parts));
