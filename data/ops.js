@@ -182,7 +182,15 @@ module.exports.calc = {
 	"**": (a, b) => a ** b,
 	"/": (a, b) => a / b,
 	"%": (a, b) => a % b,
+	"==": (a, b) => a === b,
+	"!=": (a, b) => a !== b,
+	">>": (a, b) => a >> b,
+	"<<": (a, b) => a << b,
 	"-": (...args) => args.length === 1 ? -args[0] : args[0] + args[1],
+};
+
+module.exports.advcalc = {
+	"=": (ctx, a, b) => (a = b),
 };
 
 module.exports.usefulIfSingle = [

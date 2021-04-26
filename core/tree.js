@@ -22,7 +22,7 @@ function parseExpr(list, single = false) {
 			if(top(stack)?.type === "var") top(stack).type = "keyword";  
 			stack.push(node("var", token.value));
 			unary = "post";
-		} else if(token.type === "number") {
+		} else if(token.type === "number" || token.type === "string") {
 			stack.push(node("number", token.value));
 			unary = "post";
 		} else if(token.value === "(") {

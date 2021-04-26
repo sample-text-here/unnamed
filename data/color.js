@@ -1,15 +1,17 @@
-const ansi = (what = "") => `\x1b[${what}`;
+const ansi = (what = "") => `\x1b[${what}m`;
 
 const colors = {
-	reset:	ansi("0m"),
-	black:	ansi("30m"),
-	red:	ansi("31m"),
-	green:	ansi("32m"),
-	yellow:	ansi("33m"),
-	blue:	ansi("34m"),
-	purple:	ansi("35m"),
-	cyan:	ansi("36m"),
-	white:	ansi("37m"),
+	reset:	ansi("0"),
+	bold:	ansi("1"),
+	black:	ansi("30"),
+	red:	ansi("31"),
+	green:	ansi("32"),
+	yellow:	ansi("33"),
+	blue:	ansi("34"),
+	purple:	ansi("35"),
+	cyan:	ansi("36"),
+	white:	ansi("37"),
+	gray:	ansi("90"),
 }
 
 module.exports = {

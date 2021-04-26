@@ -1,4 +1,5 @@
 const EventEmmitter = require("events");
+const { color } = require("../data/color.js");
 const { calc, usefulIfSingle } = require("../data/ops.js");
 
 class Generator {
@@ -61,10 +62,23 @@ function isPointless(node) {
 	return false;
 }
 
+function format(value) {
+	if(value === null) {
+		return color("null", "gray");
+	} else if(typeof value === "number") {
+		return color(value.toString(), "cyan");
+	} else if(typeof value === "string") {
+		return color(value, "green");
+	} else {
+		return value;
+	}	
+}
+
 module.exports = {
 	Generator,
-	removeComments,
+	format,
 	simplify,
+	removeComments,
 	isPointless,
 	events: new EventEmmitter(),
 };

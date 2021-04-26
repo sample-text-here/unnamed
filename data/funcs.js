@@ -1,5 +1,6 @@
 module.exports = {
-	print(args) {
-		console.log(args);
+	print(...args) {
+		console.log(...args);
+		return null;
 	},
 };
