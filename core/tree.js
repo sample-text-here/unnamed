@@ -15,24 +15,26 @@ function parseExpr(list, single = false) {
 	const stack = [];
 	const opStack = [];
 	let unary = "pre";
+	let seperated = true;
 
 	while(!list.done()) {
 		const token = list.next();
 		if(token.type === "word") {	
-			if(top(stack)?.type === "var") top(stack).type = "keyword";  
+			if(!seperated) top(stack).type = "keyword";
 			stack.push(node("var", token.value));
 			unary = "post";
-		} else if(token.type === "number" || token.type === "string") {
-			stack.push(node("number", token.value));
-			unary = "post";
+			seperated = false;
 		} else if(token.value === "(") {
-			if(stack.length > 0 && top(stack).type === "var") {
+			if(stack.length > 0 && top(stack).type === "var" && !seperated) {
 				opStack.push({ name: stack.pop().value, isFunc: true });
 				stack.push({ type: "funcSep" });
 			}
 			opStack.push({ name: "(" });
 			unary = "pre";
-		} else if(token.value === ",") {
+		} else if(token.type === "number" || token.type === "string") {
+			stack.push(node("number", token.value));
+			unary = "post";
+		}  else if(token.value === ",") {
 			if(single) break;
 			while(opStack.length > 0 && top(opStack).name !== "(") popOp();
 			stack.push({ type: "spacer" });
@@ -66,6 +68,7 @@ function parseExpr(list, single = false) {
 			}
 			opStack.push(thisOp);
 			unary = "pre";
+			seperated = true;
 		} else if(token.type === "stop") {
 			break;
 		} else if(token.type === "block") {
@@ -125,7 +128,7 @@ function declarations(parsed) {
 	}
 	return transformed;
 
-	function readType(obj) {
+	function readType() {
 		const modifiers = [];
 		let varType = parsed.next().value;
 		while(!parsed.done() && parsed.peek().type === "keyword") {
@@ -135,7 +138,7 @@ function declarations(parsed) {
 		return { modifiers, varType };
 	}
 
-	function readFunc(obj) {
+	function readFunc() {
 		const next = parsed.next();
 		return {
 			name: next.op.name,
@@ -144,15 +147,16 @@ function declarations(parsed) {
 		};
 	}
 
-	function readVars(obj) {
+	function readVars() {
 		const vars = [];
+		const names = [];
 		while(!parsed.done()) {
 			const next = parsed.peek();
 			if(next.type !== "var" && next.type !== "op") break;
 			if(next.type === "op" && next.op.isFunc) throw "why would this work";
 			vars.push(parsed.next());
 		}
-		return { vars, type: "declareVariable" };
+		return { vars, names, type: "declareVariable" };
 	}
 }
 

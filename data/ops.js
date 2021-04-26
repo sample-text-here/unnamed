@@ -190,7 +190,11 @@ module.exports.calc = {
 };
 
 module.exports.advcalc = {
-	"=": (ctx, a, b) => (a = b),
+	"=": (ctx, a, b) => {
+		if(b.type !== "var") throw "invalid left hand side";
+		ctx.setVar(b.value, a.value);
+		return a.value;
+	},
 };
 
 module.exports.usefulIfSingle = [

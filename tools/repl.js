@@ -10,14 +10,15 @@ const rl = readline.createInterface({
 	// prompt: "> ",
 });
 
-let i = 0;
+const ctx = new util.Context();
 
 function main(code) {
 	try {
 		const tokens = util.removeComments(tokenize(new util.Generator(code)));
 		const gen = gentree(new util.Generator(tokens));
+		// console.log(gen);
 		// util.simplify(gen);
-		console.log(util.format(interpret(gen)));
+		console.log(util.format(interpret(gen, ctx)));
 	} catch(err) {
 		console.error(err);
 	}

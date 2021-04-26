@@ -13,11 +13,40 @@ class Generator {
 	done() { return this.i >= this.data.length }
 }
 
+class Context {
+	constructor(parent) {
+		this.parent = parent;
+		this.vars = new Map();
+		this.curType = null;
+	}
+	
+	setVar(name, value) {
+		const has = this.vars.has(name);
+		if(this.curType) {
+			if(has) throw "already declared " + name;
+			this.vars.set(name, { value, varType: this.curType });
+		} else {
+			if(!has) {
+				if(!this.parent) throw "didnt declare " + name;
+				this.parent.setVar(name, value);
+			} else {
+				this.vars.set(name, { value, varType: this.vars.get(name).type });
+			}
+		}
+	}
+
+	getVar(name) {
+		if(!this.vars.has(name)) {
+			if(!this.parent) throw "unknown variable " + name;
+			return this.parent.getVar(name);
+		}
+		return this.vars.get(name);
+	}
+}
+
 function removeComments(tokens) {
 	const clean = [];
-	for(let i of tokens) {
-		if(i.type !== "comment") clean.push(i);
-	}
+	for(let i of tokens) if(i.type !== "comment") clean.push(i);
 	return clean;
 }
 
@@ -76,6 +105,7 @@ function format(value) {
 
 module.exports = {
 	Generator,
+	Context,
 	format,
 	simplify,
 	removeComments,
