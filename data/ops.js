@@ -192,7 +192,7 @@ module.exports.calc = {
 module.exports.advcalc = {
 	"=": (ctx, a, b) => {
 		if(b.type !== "var") throw "invalid left hand side";
-		ctx.setVar(b.value, a.value);
+		ctx.get(b.value).write(a.value);
 		return a.value;
 	},
 };

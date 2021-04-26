@@ -2,15 +2,16 @@ const tokenize = require("../core/tokenize.js");
 const gentree = require("../core/tree.js");
 const interpret = require("../core/interpret.js");
 const util = require("../core/util.js");
+const { Memory } = require("../data/memory.js");
 const readline = require("readline");
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
-	prompt: "λ ", // i am now a :sunglasses: cool kid
-	// prompt: "> ",
+	prompt: "λ ",
 });
 
-const ctx = new util.Context();
+const memory = new Memory();
+const ctx = util.Context.fromMemory(memory);
 
 function main(code) {
 	try {

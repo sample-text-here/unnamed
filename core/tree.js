@@ -20,7 +20,9 @@ function parseExpr(list, single = false) {
 	while(!list.done()) {
 		const token = list.next();
 		if(token.type === "word") {	
-			if(!seperated) top(stack).type = "keyword";
+			if(!seperated && top(stack).type === "var") {
+				top(stack).type = "keyword";
+			}
 			stack.push(node("var", token.value));
 			unary = "post";
 			seperated = false;

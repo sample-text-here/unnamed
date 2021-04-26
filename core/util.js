@@ -16,31 +16,40 @@ class Generator {
 class Context {
 	constructor(parent) {
 		this.parent = parent;
-		this.vars = new Map();
-		this.curType = null;
+		this.memory = parent?.memory;
+		this.allocs = new Map();
+	}
+
+	alloc(name, value) {
+		value.attach(this.memory);
+		this.allocs.set(name, value);
+	}
+
+	set(name, value) {
+		if(this.allocs.has(name)) {
+			this.allocs.set(name, value);
+		} else if(this.parent) {
+			this.parent.set(name, value);
+		} else {
+			throw "unknown variable " + name;
+		}
 	}
 	
-	setVar(name, value) {
-		const has = this.vars.has(name);
-		if(this.curType) {
-			if(has) throw "already declared " + name;
-			this.vars.set(name, { value, varType: this.curType });
+	get(name) {
+		if(this.allocs.has(name)) {
+			return this.allocs.get(name);
+		} else if(this.parent) {
+			return this.parent.get(name);
 		} else {
-			if(!has) {
-				if(!this.parent) throw "didnt declare " + name;
-				this.parent.setVar(name, value);
-			} else {
-				this.vars.set(name, { value, varType: this.vars.get(name).type });
-			}
+			throw "unknown variable " + name;
 		}
 	}
 
-	getVar(name) {
-		if(!this.vars.has(name)) {
-			if(!this.parent) throw "unknown variable " + name;
-			return this.parent.getVar(name);
-		}
-		return this.vars.get(name);
+	static fromMemory(memory) {
+		const ctx = new Context();
+		ctx.parent = null;
+		ctx.memory = memory;
+		return ctx;
 	}
 }
 
@@ -91,6 +100,15 @@ function isPointless(node) {
 	return false;
 }
 
+function pack(value) {
+	if(value === null) return { type: "null" };
+	switch(typeof value) {
+		case "number": return { type: "number", value };
+		case "string": return { type: "number", value };
+		case "object": return value;
+	};
+}
+
 function format(value) {
 	if(value === null) {
 		return color("null", "gray");
@@ -107,6 +125,7 @@ module.exports = {
 	Generator,
 	Context,
 	format,
+	pack,
 	simplify,
 	removeComments,
 	isPointless,
