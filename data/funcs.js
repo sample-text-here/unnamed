@@ -1,6 +1,8 @@
+const util = require("../core/util.js")
+
 module.exports = {
 	print(...args) {
-		console.log(...args);
+		console.log(...args.map(i => util.format(i)));
 		return null;
 	},
 	sqrt(arg) {

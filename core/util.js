@@ -1,6 +1,6 @@
 const EventEmmitter = require("events");
 const { color } = require("../data/color.js");
-const { calc, usefulIfSingle } = require("../data/ops.js");
+const { usefulIfSingle } = require("../data/ops.js");
 
 class Generator {
 	constructor(iter) {
@@ -59,37 +59,6 @@ function removeComments(tokens) {
 	return clean;
 }
 
-function simplify(tree) {
-	for(let i of tree) {
-		if(i.type === "block") {
-			simplify(i.content);
-		} else if(i.type === "op") {
-			reduceNode(i);
-		} else if(i.type === "declaration") {
-			i.expressions.forEach(reduceNode);
-		}
-	}
-
-	function reduceNode(node) {
-		let canReduce = true;
-		for(let i of node.args) {
-			if(i.type === "op") {
-				reduceNode(i);
-				if(i.type === "op") canReduce = false;
-			} else if(i.type !== "number") {
-				canReduce = false;
-			}
-		}
-		if(!canReduce) return;
-		if(calc.hasOwnProperty(node.op)) {
-			node.type = "number";
-			node.value = calc[node.op](...node.args.map(i => i.value));
-			delete node.args;
-			delete node.op;
-		}
-	}
-}
-
 function isPointless(node) {
 	if(node.type === "number") return true;
 	if(node.type === "var") return true;
@@ -105,6 +74,7 @@ function pack(value) {
 	switch(typeof value) {
 		case "number": return { type: "number", value };
 		case "string": return { type: "number", value };
+		case "boolean": return { type: "boolean", value };
 		case "object": return value;
 	};
 }
@@ -116,6 +86,8 @@ function format(value) {
 		return color(value.toString(), "cyan");
 	} else if(typeof value === "string") {
 		return color(value, "green");
+	} else if(typeof value === "boolean") {
+		return color(value, "yellow");
 	} else {
 		return value;
 	}	
@@ -126,7 +98,6 @@ module.exports = {
 	Context,
 	format,
 	pack,
-	simplify,
 	removeComments,
 	isPointless,
 	events: new EventEmmitter(),

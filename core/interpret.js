@@ -1,7 +1,7 @@
 const ops = require("../data/ops.js");
 const funcs = require("../data/funcs.js");
 const types = require("../data/types.js");
-const { Memory, Variable } = require("../data/memory.js");
+const { Memory, Variable, Arrey } = require("../data/memory.js");
 const { Context, pack } = require("./util.js");
 
 function getNames(nodes) {
@@ -30,11 +30,10 @@ function declareVariable(ctx, node) {
 
 function calcFunc(ctx, node) {
 	if(!funcs.hasOwnProperty(node.name)) throw "unknown function";
-	return pack(funcs[node.name](...node.args.map(i => calc(ctx, i))));
+	return pack(funcs[node.name](...node.args.map(i => toValue(ctx, calc(ctx, i)))));
 }
 
 function calcOp(ctx, node) {
-	// console.log(node)
 	if(ops.calc.hasOwnProperty(node.op)) {
 		const args = node.args.map(i => toValue(ctx, i));
 		return pack(ops.calc[node.op](...args));
@@ -49,6 +48,7 @@ function calcOp(ctx, node) {
 function calc(ctx, node) {
 	if(node.type === "op") return calcOp(ctx, node);
 	if(node.type === "declareVariable") return declareVariable(ctx, node);
+	if(node.type === "function") return calcFunc(ctx, node);
 	return node;
 }
 
@@ -57,9 +57,11 @@ function toValue(ctx, node) {
 	if(node.type === "null") return null;
 	if(node.type === "number") return node.value;
 	if(node.type === "string") return node.value;
+	if(node.type === "boolean") return node.value;
 	if(node.type === "var") return ctx.get(node.value).read();
 	if(node.type === "op") return toValue(ctx, calcOp(ctx, node));
 	if(node.type === "function") return calcFunc(ctx, node);
+	if(node.type === "array") return node.values.map(i => toValue(ctx, i));
 	throw "idk how to read that";
 }
 

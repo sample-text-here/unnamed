@@ -36,6 +36,30 @@ class Variable {
 	}
 }
 
+// 100% legit array
+class Arrey {
+	constructor(type, length) {
+		this.type = type;
+		this.length = length;
+		this.memory = null;
+	}
+
+	attach(memory) {
+		if(this.memory !== null) throw "memory already allocated";
+		this.memory = memory.alloc(this.type.size * this.length);
+	}
+	
+	read(index) {
+		if(this.memory === null) throw "no memory allocated";
+		return this.memory["read" + this.type.access](this.type.size * index);
+	}
+
+	write(index, value) {
+		if(this.memory === null) throw "no memory allocated";
+		this.memory["write" + this.type.access](value, this.type.size * index);
+	}
+}
+
 class Struct {
 	constructor() {
 		this.parts = new Map();
@@ -70,8 +94,7 @@ class Struct {
 		if(this.ptr === null) throw "no memory attached";
 		const { offset, type } = this.get(name);
 		this.memory["write" + type.access](value, offset);
-		
 	}
 }
 
-module.exports = { Memory, Variable, Struct };
+module.exports = { Memory, Variable, Arrey, Struct };

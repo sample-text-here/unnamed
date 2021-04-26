@@ -58,6 +58,19 @@ function parseExpr(list, single = false) {
 				stack.push({ type: "function", name: op.name, args });
 			}
 			unary = "pre";
+		} else if(token.value === "[") {
+			stack.push({ type: "arraySep" });
+			unary = "pre";
+		} else if(token.value === "]") {
+			const values = [];
+			while(stack.length > 0 && top(stack).type !== "arraySep") {
+				while(top(stack).type === "spacer") stack.pop();
+				values.push(stack.pop());
+			}
+			if(top(stack).type !== "arraySep") throw "unterminated array";
+			stack.pop();
+			stack.push({ type: "array", values: values.reverse() });
+			unary = "post";
 		} else if(token.type === "symbol") {
 			const thisOp = findOp(token.value);
 			let prevOp = top(opStack);
@@ -154,6 +167,14 @@ function declarations(parsed) {
 		const names = [];
 		while(!parsed.done()) {
 			const next = parsed.peek();
+			if(next.type === "array") {
+				if(!top(vars)) throw "why";
+				if(!next.values[0]) throw "no length";
+				top(vars).isArray = true;
+				top(vars).length = next.values[0];
+				parsed.next();
+				continue;
+			}
 			if(next.type !== "var" && next.type !== "op") break;
 			if(next.type === "op" && next.op.isFunc) throw "why would this work";
 			vars.push(parsed.next());

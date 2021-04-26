@@ -9,6 +9,10 @@ const tokenize = require("../core/tokenize.js");
 const gentree = require("../core/tree.js");
 const util = require("../core/util.js");
 const meta = require("../meta.json");
+const parse = require("./argparse.js");
+const { Memory } = require("../data/memory.js");
+const interpret = require("../core/interpret.js");
+
 function normalize(data) {
 	if(data instanceof Array) return data.map(i => i.value ?? i).join("");
 	return data.value ?? data.toString();
@@ -54,8 +58,6 @@ function main(code) {
 	console.log("optimized:", gen);
 }
 
-// main("1+1,2+2");
-
 function error(why) {
 	console.error(color(why, "red"));
 	process.exit(1);
@@ -94,6 +96,13 @@ const commands = {
 			}
 		},
 	},
+	repl: {
+		description: "open a read/print/eval/loop",
+		args: {},
+		call() {
+			require("./repl.js")
+		},
+	},
 	validate: {
 		description: "(NEED TO DO) check for syntax errors",
 		args: {},
@@ -114,15 +123,17 @@ const commands = {
 			}
 		},
 	},
-	repl: {
-		description: "(NEED TO DO) open a read/print/eval/loop",
-		args: {},
-		call() {},
-	},
 	run: {
-		description: "(NEED TO DO) interpret without compiling",
+		description: "interpret without compiling",
 		args: {},
-		call() {},
+		call(args) {
+			const file = read(args._[0]);
+			const tokens = util.removeComments(tokenize(new util.Generator(file)));
+			const gen = gentree(new util.Generator(tokens));
+			const memory = new Memory();
+			const ctx = util.Context.fromMemory(memory);
+			interpret(gen, ctx);
+		},
 	},
 	compile: {
 		description: "(NEED TO DO) compile into a static binary",
@@ -131,29 +142,9 @@ const commands = {
 	},
 };
 
-function parseArgs(argv, pattern) {
-	const args = { _: [] };
-	for(let i = 0; i < argv.length; i++) {
-		const arg = argv[i];
-		if(arg[0] === "-") {
-			const name = arg.slice(1);
-			if(!pattern.hasOwnProperty(name)) {
-				throw "unknown flag " + arg;
-			}
-			switch(pattern[name]) {
-				case "int":
-					args[name] = parseInt(argv[++i]);
-					break;
-				default: args[name] = true;
-			}
-		} else {
-			args._.push(arg);
-		}
-	}
-	return args;
-}
-
-if(commands.hasOwnProperty(process.argv[2])) {
+if(!process.argv[2]) {
+	commands.repl.call();
+} else if(commands.hasOwnProperty(process.argv[2])) {
 	const cmd = commands[process.argv[2]];
-	cmd.call(parseArgs(process.argv.slice(3), cmd.args));
+	cmd.call(parse(process.argv.slice(3), cmd.args));
 }
