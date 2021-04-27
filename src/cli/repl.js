@@ -8,10 +8,11 @@ const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
 	prompt: "λ ",
+	// prompt: "now what? ",
 });
 
 const memory = new Memory();
-const ctx = util.Context.fromMemory(memory);
+const ctx = new util.Context(memory);
 
 function main(code) {
 	try {

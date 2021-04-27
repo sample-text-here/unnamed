@@ -15,24 +15,18 @@ class Generator {
 
 class Context {
 	constructor(parent) {
-		this.parent = parent;
-		this.memory = parent?.memory;
+		if(parent instanceof Context) {
+			this.parent = parent;
+			this.memory = parent.memory;
+		} else {
+			this.memory = parent;
+		}
 		this.allocs = new Map();
 	}
 
 	alloc(name, value) {
-		value.attach(this.memory);
+		value.init(this.memory);
 		this.allocs.set(name, value);
-	}
-
-	set(name, value) {
-		if(this.allocs.has(name)) {
-			this.allocs.set(name, value);
-		} else if(this.parent) {
-			this.parent.set(name, value);
-		} else {
-			throw "unknown variable " + name;
-		}
 	}
 	
 	get(name) {
@@ -43,13 +37,6 @@ class Context {
 		} else {
 			throw "unknown variable " + name;
 		}
-	}
-
-	static fromMemory(memory) {
-		const ctx = new Context();
-		ctx.parent = null;
-		ctx.memory = memory;
-		return ctx;
 	}
 }
 
@@ -75,7 +62,6 @@ function pack(value) {
 		case "number": return { type: "number", value };
 		case "string": return { type: "number", value };
 		case "boolean": return { type: "boolean", value };
-		case "object": return value;
 	};
 }
 

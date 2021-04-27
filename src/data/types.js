@@ -1,22 +1,22 @@
 const types = new Map();
 const baseTypes = {
-	"u8": "UInt8BE",
-	"u16": "UInt16BE",
-	"u32": "UInt32BE",
-	"u64": "UInt64BE",
+	"u8": "UInt8",
+	"u16": "UInt16",
+	"u32": "UInt32",
+	"u64": "UInt64",
 
-	"i8": "Int8BE",
-	"i16": "Int16BE",
-	"i32": "Int32BE",
-	"i64": "Int64BE",
+	"i8": "Int8",
+	"i16": "Int16",
+	"i32": "Int32",
+	"i64": "Int64",
 	
-	"f32": "Float32BE",
-	"f64": "Double64BE",
+	"f32": "Float32",
+	"f64": "Double64",
 };
 
 for(let type in baseTypes) {
 	const size = parseInt(type.slice(1));
-	types.set(type, { size, access: baseTypes[type] })
+	types.set(type, { size, access: baseTypes[type] + "BE" })
 }
 
 const aliases = {

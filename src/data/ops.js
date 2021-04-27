@@ -186,14 +186,19 @@ module.exports.calc = {
 	"!=": (a, b) => a !== b,
 	">>": (a, b) => a >> b,
 	"<<": (a, b) => a << b,
+	"&&": (a, b) => a && b,
+	"||": (a, b) => a || b,
+	"&": (a, b) => a & b,
+	"|": (a, b) => a | b,
+	"^": (a, b) => a ^ b,
 	"-": (...args) => args.length === 1 ? -args[0] : args[0] + args[1],
 };
 
 module.exports.advcalc = {
 	"=": (ctx, a, b) => {
 		if(b.type !== "var") throw "invalid left hand side";
-		ctx.get(b.value).write(a.value);
-		return a.value;
+		ctx.get(a.value).write(b.value);
+		return b.value;
 	},
 };
 

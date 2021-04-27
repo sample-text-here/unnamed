@@ -4,6 +4,7 @@ const types = require("../data/types.js");
 const { Memory, Variable, Arrey } = require("../data/memory.js");
 const { Context, pack } = require("./util.js");
 
+// get new variable declarations
 function getNames(nodes) {
 	const names = [];
 	for(let i of nodes) {
@@ -28,12 +29,20 @@ function declareVariable(ctx, node) {
 	return pack(null);
 }
 
-function calcFunc(ctx, node) {
-	if(!funcs.hasOwnProperty(node.name)) throw "unknown function";
-	return pack(funcs[node.name](...node.args.map(i => toValue(ctx, calc(ctx, i)))));
+function calcIf(ctx, node) {
+	if(toValue(ctx, node.condition)) {
+		return toValue(ctx, node.body);
+	}
+	return null;
 }
 
-function calcOp(ctx, node) {
+function calcFunction(ctx, node) {
+	if(!funcs.hasOwnProperty(node.name)) throw "unknown function";
+	const args = node.args.map(i => toValue(ctx, calc(ctx, i)));
+	return pack(funcs[node.name](...args));
+}
+
+function calcOperator(ctx, node) {
 	if(ops.calc.hasOwnProperty(node.op)) {
 		const args = node.args.map(i => toValue(ctx, i));
 		return pack(ops.calc[node.op](...args));
@@ -45,23 +54,30 @@ function calcOp(ctx, node) {
 	}
 }
 
+// reduce a node
 function calc(ctx, node) {
-	if(node.type === "op") return calcOp(ctx, node);
+	if(node.type === "op") return calcOperator(ctx, node);
+	if(node.type === "function") return calcFunction(ctx, node);
 	if(node.type === "declareVariable") return declareVariable(ctx, node);
-	if(node.type === "function") return calcFunc(ctx, node);
+	// if(node.type === "declareFunction") return declareFunction(ctx, node);
 	return node;
 }
 
+// convert to a raw value
 function toValue(ctx, node) {
 	if(node === null) return null;
-	if(node.type === "null") return null;
-	if(node.type === "number") return node.value;
-	if(node.type === "string") return node.value;
-	if(node.type === "boolean") return node.value;
-	if(node.type === "var") return ctx.get(node.value).read();
-	if(node.type === "op") return toValue(ctx, calcOp(ctx, node));
-	if(node.type === "function") return calcFunc(ctx, node);
-	if(node.type === "array") return node.values.map(i => toValue(ctx, i));
+	switch(node.type) {
+		case "null": return null;
+		case "number":
+		case "string":
+		case "boolean": return node.value;
+		case "var": return ctx.get(node.value).read();
+		case "op": return toValue(ctx, calcOperator(ctx, node));
+		case "function": return toValue(ctx, calcFunction(ctx, node));
+		case "block": return interpret(node.content, ctx);
+		case "if": return calcIf(ctx, node);
+		// case "array": // TODO
+	}
 	throw "idk how to read that";
 }
 

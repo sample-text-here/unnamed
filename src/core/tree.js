@@ -121,7 +121,7 @@ function parseExpr(list, single = false) {
 			if(top(stack).type === "spacer") throw "no";
 			args.push(stack.pop());
 		}
-		stack.push(opNode(op.internal ?? op.name, args));
+		stack.push(opNode(op.internal ?? op.name, args.reverse()));
 	}
 }
 
@@ -184,6 +184,30 @@ function declarations(parsed) {
 	}
 }
 
+function combineKeywords(parsed) {
+	const transformed = [];
+	while(!parsed.done()) {
+		const node = parsed.next();
+		if(node.type === "keyword") {
+			transformed.push(keyword(node));
+		} else {
+			transformed.push(node);
+		}
+	}
+	return transformed;
+
+	function keyword(node) {
+		if(node.value === "if") {
+			const token =  { type: "if", condition: parsed.next(), body: parsed.next() };
+			if(!token.condition) throw "if has no condition";
+			if(!token.body) throw "if has no body";
+			return token;
+		} else {
+			throw node.value + " is unimplemented";
+		}
+	}
+}
+
 function generate(tokens) {
 	const parts = [];
 	while(!tokens.done()) {
@@ -201,13 +225,14 @@ function generate(tokens) {
 			parts.push({ type: "seperator" });
 		}
 	}
+
 	const assembled = declarations(new Generator(parts));
 	for(let i of assembled) {
 		if(isPointless(i)) {
 			events.emit("warn", { type: "poinless", gen: tokens });
 		}
 	}
-	return assembled;
+	return combineKeywords(new Generator(assembled));
 }
 
 module.exports = generate;
