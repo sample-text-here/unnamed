@@ -28,7 +28,10 @@ function getEscape(eq) {
 function number(eq) {
 	let buffer = "";
 	let usedDecimal = false;
-	if(eq.peek() === '0') buffer += eq.next() + eq.next();
+	if(eq.peek() === '0') {
+		buffer += eq.next();
+		if(isAlpha(eq.peek())) buffer += eq.next();
+	}
 	while(true) {
 		const char = eq.peek();
 		if(isDigit(char)) {
@@ -76,9 +79,11 @@ function word(eq) {
 const sticky = "=!><*+-&|".split("");
 function symbol(eq) {
 	let buf = eq.next();
-	while(true) {
-		if(!sticky.includes(eq.peek())) break;
-		buf += eq.next();
+	if(sticky.includes(buf)) {
+		while(true) {
+			if(!sticky.includes(eq.peek())) break;
+			buf += eq.next();
+		}
 	}
 	return token("symbol", buf);
 }

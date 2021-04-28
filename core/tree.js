@@ -137,22 +137,31 @@ function readExpression(list) {
 // read a keyword
 function readKeyword(type, tokens) {
 	if(type === "if") {
-		const cond = {
-			type: "if",
-			condition: readExpression(tokens),
-			body: readExpression(tokens),
-		};
-		if(!cond.condition) throw "no condition";
-		if(!cond.body) throw "no body";
+		const cond = readCondBody();
+		cond.type = "if";
 		if(tokens.peek()?.value === "else") {
 			tokens.next();
 			cond.else = read(tokens);
 		}
 		return cond;
+	} if(type === "while") {
+		const loop = readCondBody();
+		loop.type = "while";
+		return loop;
 	} else if(type === "else") {
 		throw "invalid else";
 	}
 	throw "unimplemented keyword " + type;
+
+	function readCondBody() {
+		const node = {
+			condition: readExpression(tokens),
+			body: readExpression(tokens),
+		};
+		if(!node.condition) throw "no condition";
+		if(!node.body) throw "no body";
+		return node;
+	}
 }
 
 // read a variable declaration

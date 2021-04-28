@@ -38,6 +38,11 @@ function calcIf(ctx, node) {
 	return null;
 }
 
+function calcWhile(ctx, node) {
+	while(toValue(ctx, node.condition)) calc(ctx, node.body);
+	return null;
+}
+
 function calcFunction(ctx, node) {
 	if(!funcs.hasOwnProperty(node.name)) throw "unknown function";
 	const args = node.args.map(i => toValue(ctx, calc(ctx, i)));
@@ -61,6 +66,8 @@ function calc(ctx, node) {
 	if(node.type === "op") return calcOperator(ctx, node);
 	if(node.type === "function") return calcFunction(ctx, node);
 	if(node.type === "declareVariable") return declareVariable(ctx, node);
+	if(node.value === "if") return calcIf(ctx, node);
+	if(node.value === "while") return calcWhile(ctx, node);
 	// if(node.type === "declareFunction") return declareFunction(ctx, node);
 	return node;
 }
@@ -78,6 +85,7 @@ function toValue(ctx, node) {
 		case "function": return toValue(ctx, calcFunction(ctx, node));
 		case "block": return interpret(node.content, ctx);
 		case "if": return calcIf(ctx, node);
+		case "while": return calcWhile(ctx, node);
 		// case "array": // TODO
 	}
 	throw "idk how to read that";

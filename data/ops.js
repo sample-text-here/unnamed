@@ -244,8 +244,8 @@ const advcalc = {
 	"|=": (ctx, a, b) => changeVar(ctx, a, n => n | b.value),
 	"&&=": (ctx, a, b) => changeVar(ctx, a, n => n && b.value),
 	"||=": (ctx, a, b) => changeVar(ctx, a, n => n || b.value),
-	"incrPre": (ctx, a) => changeVar(ctx, a, n => n || 1),
-	"decrPre": (ctx, a) => changeVar(ctx, a, n => n || 1),
+	"incrPre": (ctx, a) => changeVar(ctx, a, n => n + 1),
+	"decrPre": (ctx, a) => changeVar(ctx, a, n => n - 1),
 	"incrPost": (ctx, a) => {
 		const variable = getVar(ctx, a);
 		const val = variable.read();
