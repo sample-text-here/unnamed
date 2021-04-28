@@ -61,27 +61,12 @@ function readExpression(list) {
 					}
 				}
 				if(top(stack).type === "funcSep") stack.pop();
-				stack.push({ type: "function", name: op.name, args });
+				stack.push({ type: "function", name: op.name, args: args.reverse() });
 			}
 			unary = "pre";
 			depth--;
 			if(depth === 0 && list.peek()?.type !== "op") break;
-		}
-		// else if(token.value === "[") {
-			// stack.push({ type: "arraySep" });
-			// unary = "pre";
-		// } else if(token.value === "]") {
-			// const values = [];
-			// while(stack.length > 0 && top(stack).type !== "arraySep") {
-				// while(top(stack).type === "spacer") stack.pop();
-				// values.push(stack.pop());
-			// }
-			// if(top(stack).type !== "arraySep") throw "unterminated array";
-			// stack.pop();
-			// stack.push({ type: "array", values: values.reverse() });
-			// unary = "post";
-		// } 
-		else if(token.type === "symbol") {
+		} else if(token.type === "symbol") {
 			const thisOp = findOp(token.value);
 			let prevOp = top(opStack);
 			while(opStack.length > 0) {
@@ -198,6 +183,7 @@ function readVariable(tokens) {
 		const next = tokens.next();
 		if(next.type === "stop") break;
 	}
+	
 	return { type: "declareVariable", modifiers, varType, declarations };
 
 	function readType() {
@@ -214,6 +200,7 @@ function readVariable(tokens) {
 	}
 }
 
+// guess
 function readWord(word, tokens, parts) {
 	if(keywords.includes(word)) {
 		return readKeyword(word, tokens);
@@ -250,3 +237,21 @@ function generate(tokens) {
 }
 
 module.exports = generate;
+
+/*
+// array code, removed for now
+else if(token.value === "[") {
+	stack.push({ type: "arraySep" });
+	unary = "pre";
+} else if(token.value === "]") {
+	const values = [];
+	while(stack.length > 0 && top(stack).type !== "arraySep") {
+		while(top(stack).type === "spacer") stack.pop();
+		values.push(stack.pop());
+	}
+	if(top(stack).type !== "arraySep") throw "unterminated array";
+	stack.pop();
+	stack.push({ type: "array", values: values.reverse() });
+	unary = "post";
+} 
+*/

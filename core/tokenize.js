@@ -1,3 +1,4 @@
+// convert a raw string into chunks/tokens
 const token = (type, value) => ({ type, value });
 const isDigit = char => char >= '0' && char <= '9';
 const isLowerAlpha = char => char >= 'a' && char <= 'z';
@@ -7,6 +8,7 @@ const isStarter = char => isAlpha(char) || char === "_";
 const isQuote = char => char === "'" || char === '"';
 const isWhitespace = char => /\s/.test(char);
 
+// need to find a list of all escapes, or find a better way to do this
 function getEscape(eq) {
 	const what = eq.next();
 	switch(what) {

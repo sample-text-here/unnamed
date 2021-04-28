@@ -1,3 +1,4 @@
+// attempt to optimize parts of the AST
 const { calc } = require("../data/ops.js");
 
 function simplify(tree) {

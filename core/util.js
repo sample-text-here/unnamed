@@ -1,7 +1,9 @@
+// useful utilities
 const EventEmmitter = require("events");
 const { color } = require("../data/color.js");
 const { usefulIfSingle } = require("../data/ops.js");
 
+// iterate over an array and keep its index
 class Generator {
 	constructor(iter) {
 		this.data = iter;
@@ -13,6 +15,7 @@ class Generator {
 	done() { return this.i >= this.data.length }
 }
 
+// contexts attempt to write to their own memory before their parent's
 class Context {
 	constructor(parent) {
 		if(parent instanceof Context) {
@@ -40,12 +43,14 @@ class Context {
 	}
 }
 
+// strip comments from a token list
 function removeComments(tokens) {
 	const clean = [];
 	for(let i of tokens) if(i.type !== "comment") clean.push(i);
 	return clean;
 }
 
+// is a node pointless/do nothing?
 function isPointless(node) {
 	if(node.type === "number") return true;
 	if(node.type === "var") return true;
@@ -56,6 +61,7 @@ function isPointless(node) {
 	return false;
 }
 
+// convert a raw value into one usable in the interpreter
 function pack(value) {
 	if(value === null) return { type: "null" };
 	switch(typeof value) {
@@ -65,6 +71,7 @@ function pack(value) {
 	};
 }
 
+// color some text
 function format(value) {
 	if(value === null) {
 		return color("null", "gray");
@@ -76,7 +83,7 @@ function format(value) {
 		return color(value, "yellow");
 	} else {
 		return value;
-	}	
+	}
 }
 
 module.exports = {

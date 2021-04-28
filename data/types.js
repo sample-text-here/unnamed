@@ -1,3 +1,4 @@
+// builtin types
 const types = new Map();
 const baseTypes = {
 	"u8": "UInt8",
