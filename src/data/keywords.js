@@ -1,3 +1,4 @@
+// keywords
 module.exports = [
 	"if",
 	"else",

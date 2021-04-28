@@ -18,12 +18,12 @@ function getNames(nodes) {
 }
 
 function declareVariable(ctx, node) {
-	for(let name of getNames(node.vars)) {
+	for(let name of getNames(node.declarations)) {
 		ctx.alloc(name, new Variable(types.get(node.varType)));
 	}
 
-	for(let i of node.vars) {
-		if(i.type === "op") calcOp(ctx, i);
+	for(let i of node.declarations) {
+		if(i.type === "op") calcOperator(ctx, i);
 	}
 	
 	return pack(null);

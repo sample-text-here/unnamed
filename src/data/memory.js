@@ -1,3 +1,5 @@
+// memory and data storage
+// the main memory class
 class Memory {
 	constructor(size = 4096) {
 		this.offset = 0;
@@ -21,6 +23,7 @@ class Memory {
 	restore() { this.offset = this.frames.pop() }
 }
 
+// basic structure for manipulating data
 class Data {
 	constructor() {
 		this.memory = null;
@@ -36,6 +39,7 @@ class Data {
 	}
 }
 
+// structure for holding numbers
 class Variable extends Data {
 	constructor(type) {
 		super();
@@ -54,6 +58,7 @@ class Variable extends Data {
 	}
 }
 
+// will reimplement when needed
 // 100% legit array
 // class Arrey {
 	// constructor(type, length) {

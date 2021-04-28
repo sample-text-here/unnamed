@@ -1,5 +1,5 @@
+// tools for making colored text
 const ansi = (what = "") => `\x1b[${what}m`;
-
 const colors = {
 	reset:	ansi("0"),
 	bold:	ansi("1"),

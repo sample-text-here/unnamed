@@ -1,10 +1,14 @@
-const { Generator, isPointless, events } = require("./util.js");
+// generate an AST from a list of tokens
+const { Generator } = require("./util.js");
 const { ops } = require("../data/ops.js");
 const keywords = require("../data/keywords.js");
+
+// utilities
 const top = arr => arr[arr.length - 1];
 const node = (type, value) => ({ type, value });
 const opNode = (op, args) => ({ type: "op", op, args });
 
+// get the number of arguments from an operator type
 function numArgs(type) {
 	if(type.startsWith("unary")) return 1;
 	if(type.startsWith("binary")) return 2;
@@ -12,42 +16,43 @@ function numArgs(type) {
 	return 0;
 }
 
-function parseExpr(list, single = false) {
+// the main generator; read an expression
+function readExpression(list) {
 	const stack = [];
 	const opStack = [];
 	let unary = "pre";
-	let seperated = true;
+	let depth = 0;
 
 	while(!list.done()) {
 		const token = list.next();
 		if(token.type === "word") {	
-			if(!seperated && top(stack).type === "var") {
-				top(stack).type = "word";
-			}
+			if(unary === "post") throw "extra variable";
 			stack.push(node("var", token.value));
 			unary = "post";
-			seperated = false;
+		} else if(token.type === "number") {
+			if(unary === "post") throw "extra number";
+			stack.push(node("number", token.value));
+			unary = "post";
+		} else if(token.value === ",") {
+			if(depth === 0) break;
+			while(opStack.length > 0 && top(opStack).name !== "(") popOp();
+			stack.push({ type: "spacer" });
+			unary = "pre";
 		} else if(token.value === "(") {
-			if(stack.length > 0 && top(stack).type === "var" && !seperated) {
+			if(stack.length > 0 && top(stack).type === "var") {
 				opStack.push({ name: stack.pop().value, isFunc: true });
 				stack.push({ type: "funcSep" });
 			}
 			opStack.push({ name: "(" });
 			unary = "pre";
-		} else if(token.type === "number" || token.type === "string") {
-			stack.push(node("number", token.value));
-			unary = "post";
-		}  else if(token.value === ",") {
-			if(single) break;
-			while(opStack.length > 0 && top(opStack).name !== "(") popOp();
-			stack.push({ type: "spacer" });
-			unary = "pre";
+			depth++;
 		} else if(token.value === ")") {
 			while(opStack.length > 0 && top(opStack).name !== "(") popOp();
-			if(top(opStack)?.name === "(") opStack.pop();
+			if(top(opStack)?.name !== "(") throw "no closing paranthase";
+			opStack.pop();
 			if(top(opStack)?.isFunc) {
 				const op = opStack.pop();
-				const args = [];				
+				const args = [];
 				while(stack.length > 0 && top(stack).type !== "funcSep") {
 					if(top(stack).type === "spacer") {
 						stack.pop();
@@ -59,20 +64,23 @@ function parseExpr(list, single = false) {
 				stack.push({ type: "function", name: op.name, args });
 			}
 			unary = "pre";
-		} else if(token.value === "[") {
-			stack.push({ type: "arraySep" });
-			unary = "pre";
-		} else if(token.value === "]") {
-			const values = [];
-			while(stack.length > 0 && top(stack).type !== "arraySep") {
-				while(top(stack).type === "spacer") stack.pop();
-				values.push(stack.pop());
-			}
-			if(top(stack).type !== "arraySep") throw "unterminated array";
-			stack.pop();
-			stack.push({ type: "array", values: values.reverse() });
-			unary = "post";
-		} else if(token.type === "symbol") {
+			depth--;
+		}
+		// else if(token.value === "[") {
+			// stack.push({ type: "arraySep" });
+			// unary = "pre";
+		// } else if(token.value === "]") {
+			// const values = [];
+			// while(stack.length > 0 && top(stack).type !== "arraySep") {
+				// while(top(stack).type === "spacer") stack.pop();
+				// values.push(stack.pop());
+			// }
+			// if(top(stack).type !== "arraySep") throw "unterminated array";
+			// stack.pop();
+			// stack.push({ type: "array", values: values.reverse() });
+			// unary = "post";
+		// } 
+		else if(token.type === "symbol") {
 			const thisOp = findOp(token.value);
 			let prevOp = top(opStack);
 			while(opStack.length > 0) {
@@ -84,7 +92,6 @@ function parseExpr(list, single = false) {
 			}
 			opStack.push(thisOp);
 			unary = "pre";
-			seperated = true;
 		} else if(token.type === "stop") {
 			break;
 		} else if(token.type === "block") {
@@ -114,6 +121,7 @@ function parseExpr(list, single = false) {
 
 	function popOp() {
 		const op = opStack.pop();
+		if(op.isFunc) throw "invalid function use";
 		const argCount = numArgs(op.type);
 		if(argCount > stack.length) throw "not enough args";
 		const args = [];
@@ -125,114 +133,61 @@ function parseExpr(list, single = false) {
 	}
 }
 
-function declarations(parsed) {
-	const isFunc = node => node.type === "op" && node.op.isFunc;
-	const transformed = [];
-	while(!parsed.done()) {
-		const part = parsed.peek();
-		if(part.type === "word") {
-			const type = readType();
-			const read = isFunc(parsed.peek())
-				? readFunc()
-				: readVars();
-			transformed.push({...type, ...read});
-		} else if(part.type === "seperator") {
-			parsed.next();
-		} else {
-			transformed.push(parsed.next());
-		}
+// read a keyword
+function readKeyword(type, tokens) {
+	if(type === "if") {
+		
+	} else if(type === "else") {
+		
 	}
-	return transformed;
+	throw "unimplemented keyword " + type;
+}
 
-	function readType() {
-		const modifiers = [];
-		let varType = parsed.next().value;
-		while(!parsed.done() && parsed.peek().type === "word") {
-			modifiers.push(varType);
-			varType = parsed.next().value;
-		}
-		return { modifiers, varType };
+// read a variable declaration
+function readVariable(tokens) {
+	const modifiers = [];
+	const declarations = [];
+	let varType = tokens.next().value;
+	let next = tokens.next().value;
+	while(!tokens.done() && tokens.peek()?.type === "word") {
+		modifiers.push(varType);
+		varType = next;
+		next = tokens.next().value;
 	}
+	tokens.i--;
+	declarations.push(...readExpression(tokens));
+	return { type: "declareVariable", modifiers, varType, declarations };
+}
 
-	function readFunc() {
-		const next = parsed.next();
-		return {
-			name: next.op.name,
-			args: declarations(new Generator(next.args.reverse())),
-			type: "declareFunction",
-		};
-	}
-
-	function readVars() {
-		const vars = [];
-		const names = [];
-		while(!parsed.done()) {
-			const next = parsed.peek();
-			// if(next.type === "array") {
-				// if(!top(vars)) throw "why";
-				// if(!next.values[0]) throw "no length";
-				// top(vars).isArray = true;
-				// top(vars).length = next.values[0];
-				// parsed.next();
-				// continue;
-			// }
-			if(next.type !== "var" && next.type !== "op") break;
-			if(next.type === "op" && next.op.isFunc) throw "why would this work";
-			vars.push(parsed.next());
-		}
-		return { vars, names, type: "declareVariable" };
+function readWord(word, tokens, parts) {
+	if(keywords.includes(word)) {
+		parts.push(readKeyword(word, tokens));
+	} else if(tokens.peek()?.type === "word") {
+		tokens.i--;
+		parts.push(readVariable(tokens));
+	} else {
+		tokens.i--;
+		parts.push(...readExpression(tokens));
 	}
 }
 
-function combineKeywords(parsed) {
-	const transformed = [];
-	while(!parsed.done()) {
-		const node = parsed.next();
-		if(node.type === "keyword") {
-			transformed.push(keyword(node));
-		} else {
-			transformed.push(node);
-		}
-	}
-	return transformed;
-
-	function keyword(node) {
-		if(node.value === "if") {
-			const token =  { type: "if", condition: parsed.next(), body: parsed.next() };
-			if(!token.condition) throw "if has no condition";
-			if(!token.body) throw "if has no body";
-			return token;
-		} else {
-			throw node.value + " is unimplemented";
-		}
-	}
-}
-
+// generate an AST from a list of tokens
 function generate(tokens) {
 	const parts = [];
 	while(!tokens.done()) {
-		const token = tokens.peek();
+		const token = tokens.next();
 		if(token.value === '{') {
-			tokens.next();
 			parts.push({ type: "block", content: generate(tokens) });
 		} else if(token.value === '}') {
 			break;
-		} else if(keywords.includes(token.value)) {
-			parts.push({ type: "keyword", value: tokens.next().value });
-			parts.push({ type: "seperator" });
-		} else {	
-			parts.push(...parseExpr(tokens));
-			parts.push({ type: "seperator" });
+		} else if(token.type === "word") {
+			readWord(token.value, tokens, parts);
+		} else {
+			tokens.i--;
+			parts.push(...readExpression(tokens));
 		}
 	}
-
-	const assembled = declarations(new Generator(parts));
-	for(let i of assembled) {
-		if(isPointless(i)) {
-			events.emit("warn", { type: "poinless", gen: tokens });
-		}
-	}
-	return combineKeywords(new Generator(assembled));
+	return parts;
 }
 
 module.exports = generate;
