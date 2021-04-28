@@ -102,7 +102,6 @@ function readExpression(list) {
 			throw "what even is this";
 		}
 	}
-	
 	while(opStack.length > 0) popOp();
 	return stack[0];
 
@@ -148,6 +147,8 @@ function readKeyword(type, tokens) {
 		const loop = readCondBody();
 		loop.type = "while";
 		return loop;
+	} if(type === "for") {
+		return readFor();
 	} else if(type === "else") {
 		throw "invalid else";
 	}
@@ -162,6 +163,29 @@ function readKeyword(type, tokens) {
 		if(!node.body) throw "no body";
 		return node;
 	}
+
+	function readFor() {
+		const node = { type: "for" };
+		const filtered = [];
+		let depth = 0;
+		while(!tokens.done()) {
+			if(tokens.peek().value === "(") depth++;
+			if(tokens.peek().value === ")") depth--;
+			if(depth === 0) break;
+			filtered.push(tokens.next());
+		}
+		tokens.next();
+		const gen = new Generator(filtered.slice(1));
+		node.init = read(gen);
+		node.cond = read(gen);
+		node.incr = read(gen);
+		node.body = read(tokens);
+		if(!node.init) throw "no initializer";
+		if(!node.cond) throw "no condition";
+		if(!node.incr) throw "no incrementer";
+		if(!node.body) throw "no body";
+		return node;
+	}
 }
 
 // read a variable declaration
@@ -169,10 +193,10 @@ function readVariable(tokens) {
 	const { modifiers, varType } = readType();
 	const declarations = [];
 	while(tokens.peek()) {
-		const next = tokens.peek();
-		if(next.value === "," || next.type === "stop") tokens.next();
-		if(next.type === "stop") break;
 		declarations.push(readExpression(tokens));
+		tokens.i--;
+		const next = tokens.next();
+		if(next.type === "stop") break;
 	}
 	return { type: "declareVariable", modifiers, varType, declarations };
 

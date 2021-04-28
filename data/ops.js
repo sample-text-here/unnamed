@@ -223,29 +223,37 @@ function getVar(ctx, node) {
 	return ctx.get(node.value);
 }
 
-function changeVar(ctx, node, func) {
-	const variable = getVar(ctx, node);
-	const val = func(variable.read());
-	variable.write(val);
-	return val;
+function change(func) {
+	return function(ctx, a, b) {
+		const variable = getVar(ctx, a);
+		const val = func(variable.read(), getVal(ctx, b));
+		variable.write(val);
+		return val;
+	}
+
+	function getVal(ctx, node) {
+		if(!node) return null;
+		if(node.type === "var") return getVar(ctx, node).read();
+		return node.value;
+	}
 }
 
 // operators which modify variables
 const advcalc = {
-	"=": (ctx, a, b) => changeVar(ctx, a, () => b.value),
-	"+=": (ctx, a, b) => changeVar(ctx, a, n => n + b.value),
-	"-=": (ctx, a, b) => changeVar(ctx, a, n => n - b.value),
-	"*=": (ctx, a, b) => changeVar(ctx, a, n => n * b.value),
-	"/=": (ctx, a, b) => changeVar(ctx, a, n => n / b.value),
-	"**=": (ctx, a, b) => changeVar(ctx, a, n => n ** b.value),
-	"%=": (ctx, a, b) => changeVar(ctx, a, n => n % b.value),
-	"&=": (ctx, a, b) => changeVar(ctx, a, n => n & b.value),
-	"^=": (ctx, a, b) => changeVar(ctx, a, n => n ^ b.value),
-	"|=": (ctx, a, b) => changeVar(ctx, a, n => n | b.value),
-	"&&=": (ctx, a, b) => changeVar(ctx, a, n => n && b.value),
-	"||=": (ctx, a, b) => changeVar(ctx, a, n => n || b.value),
-	"incrPre": (ctx, a) => changeVar(ctx, a, n => n + 1),
-	"decrPre": (ctx, a) => changeVar(ctx, a, n => n - 1),
+	"=": change((a, b) => b),
+	"+=": change((a, b) => a + b),
+	"-=": change((a, b) => a - b),
+	"*=": change((a, b) => a * b),
+	"/=": change((a, b) => a / b),
+	"**=": change((a, b) => a ** b),
+	"%=": change((a, b) => a % b),
+	"&=": change((a, b) => a & b),
+	"^=": change((a, b) => a ^ b),
+	"|=": change((a, b) => a | b),
+	"&&=": change((a, b) => a && b),
+	"||=": change((a, b) => a || b),
+	"incrPre": change(a => a + 1),
+	"decrPre": change(a => a - 1),
 	"incrPost": (ctx, a) => {
 		const variable = getVar(ctx, a);
 		const val = variable.read();

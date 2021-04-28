@@ -39,7 +39,16 @@ function calcIf(ctx, node) {
 }
 
 function calcWhile(ctx, node) {
-	while(toValue(ctx, node.condition)) calc(ctx, node.body);
+	const tmp = new Context(ctx);
+	while(toValue(tmp, node.condition)) calc(tmp, node.body);
+	return null;
+}
+
+function calcFor(ctx, node) {
+	const tmp = new Context(ctx);
+	for(calc(tmp, node.init); toValue(tmp, node.cond); calc(tmp, node.incr)) {
+		calc(tmp, node.body);
+	}
 	return null;
 }
 
@@ -68,6 +77,7 @@ function calc(ctx, node) {
 	if(node.type === "declareVariable") return declareVariable(ctx, node);
 	if(node.value === "if") return calcIf(ctx, node);
 	if(node.value === "while") return calcWhile(ctx, node);
+	if(node.value === "for") return calcFor(ctx, node);
 	// if(node.type === "declareFunction") return declareFunction(ctx, node);
 	return node;
 }
@@ -83,24 +93,26 @@ function toValue(ctx, node) {
 		case "var": return ctx.get(node.value).read();
 		case "op": return toValue(ctx, calcOperator(ctx, node));
 		case "function": return toValue(ctx, calcFunction(ctx, node));
-		case "block": return interpret(node.content, ctx);
+		case "block": return interpret(node.content, ctx, false);
 		case "if": return calcIf(ctx, node);
 		case "while": return calcWhile(ctx, node);
+		case "for": return calcFor(ctx, node);
 		// case "array": // TODO
 	}
 	throw "idk how to read that";
 }
 
-function interpret(nodes, ctx) {
+function interpret(nodes, ctx, base = true) {
 	let res = null;
 	for(let i of nodes) {
 		if(i.type === "block") {
-			res = interpret(i.content, new Context(ctx));
+			res = interpret(i.content, new Context(ctx), false);
 		} else {
 			res = calc(ctx, i);
 		}
 	}
-	return toValue(ctx, res);
+	if(base) return toValue(ctx, res);
+	return res;
 }
 
 module.exports = interpret;
