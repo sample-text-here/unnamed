@@ -32,6 +32,8 @@ function declareVariable(ctx, node) {
 function calcIf(ctx, node) {
 	if(toValue(ctx, node.condition)) {
 		return toValue(ctx, node.body);
+	} else if(node.else) {
+		return toValue(ctx, node.else);
 	}
 	return null;
 }

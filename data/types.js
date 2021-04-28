@@ -10,8 +10,8 @@ const baseTypes = {
 	"i32": "Int32",
 	"i64": "Int64",
 	
-	"f32": "Float32",
-	"f64": "Double64",
+	"f32": "Float",
+	"f64": "Double",
 };
 
 for(let type in baseTypes) {

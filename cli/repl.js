@@ -1,3 +1,4 @@
+// interactively read and evaluate input
 const tokenize = require("../core/tokenize.js");
 const gentree = require("../core/tree.js");
 const interpret = require("../core/interpret.js");

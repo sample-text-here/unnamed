@@ -65,6 +65,7 @@ function readExpression(list) {
 			}
 			unary = "pre";
 			depth--;
+			if(depth === 0 && list.peek()?.type !== "op") break;
 		}
 		// else if(token.value === "[") {
 			// stack.push({ type: "arraySep" });
@@ -103,7 +104,7 @@ function readExpression(list) {
 	}
 	
 	while(opStack.length > 0) popOp();
-	return stack.filter(i => i.type !== "spacer");
+	return stack[0];
 
 	function findOp(op) {
 		for(let i of ops) {
@@ -136,56 +137,81 @@ function readExpression(list) {
 // read a keyword
 function readKeyword(type, tokens) {
 	if(type === "if") {
-		
+		const cond = {
+			type: "if",
+			condition: readExpression(tokens),
+			body: readExpression(tokens),
+		};
+		if(!cond.condition) throw "no condition";
+		if(!cond.body) throw "no body";
+		if(tokens.peek()?.value === "else") {
+			tokens.next();
+			cond.else = read(tokens);
+		}
+		return cond;
 	} else if(type === "else") {
-		
+		throw "invalid else";
 	}
 	throw "unimplemented keyword " + type;
 }
 
 // read a variable declaration
 function readVariable(tokens) {
-	const modifiers = [];
+	const { modifiers, varType } = readType();
 	const declarations = [];
-	let varType = tokens.next().value;
-	let next = tokens.next().value;
-	while(!tokens.done() && tokens.peek()?.type === "word") {
-		modifiers.push(varType);
-		varType = next;
-		next = tokens.next().value;
+	while(tokens.peek()) {
+		const next = tokens.peek();
+		if(next.value === "," || next.type === "stop") tokens.next();
+		if(next.type === "stop") break;
+		declarations.push(readExpression(tokens));
 	}
-	tokens.i--;
-	declarations.push(...readExpression(tokens));
 	return { type: "declareVariable", modifiers, varType, declarations };
+
+	function readType() {
+		const modifiers = [];
+		let varType = tokens.next().value;
+		let next = tokens.next().value;
+		while(!tokens.done() && tokens.peek()?.type === "word") {
+			modifiers.push(varType);
+			varType = next;
+			next = tokens.next().value;
+		}
+		tokens.i--;
+		return { modifiers, varType };
+	}
 }
 
 function readWord(word, tokens, parts) {
 	if(keywords.includes(word)) {
-		parts.push(readKeyword(word, tokens));
+		return readKeyword(word, tokens);
 	} else if(tokens.peek()?.type === "word") {
 		tokens.i--;
-		parts.push(readVariable(tokens));
+		return readVariable(tokens);
 	} else {
 		tokens.i--;
-		parts.push(...readExpression(tokens));
+		return readExpression(tokens);
 	}
 }
 
-// generate an AST from a list of tokens
+// generate node
+function read(tokens) {
+	const token = tokens.next();
+	if(token.value === '{') {
+		return { type: "block", content: generate(tokens) };
+	} else if(token.type === "word") {
+		return readWord(token.value, tokens);
+	} else {
+		tokens.i--;
+		return readExpression(tokens);
+	}
+}
+
+// generate a list of nodes
 function generate(tokens) {
 	const parts = [];
 	while(!tokens.done()) {
-		const token = tokens.next();
-		if(token.value === '{') {
-			parts.push({ type: "block", content: generate(tokens) });
-		} else if(token.value === '}') {
-			break;
-		} else if(token.type === "word") {
-			readWord(token.value, tokens, parts);
-		} else {
-			tokens.i--;
-			parts.push(...readExpression(tokens));
-		}
+		if(tokens.peek()?.value === '}') break;
+		parts.push(read(tokens));
 	}
 	return parts;
 }
