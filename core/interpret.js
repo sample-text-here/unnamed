@@ -40,16 +40,20 @@ function calcIf(ctx, node) {
 }
 
 function calcWhile(ctx, node) {
+	// ctx.memory.save();
 	const tmp = new Context(ctx);
 	while(toValue(tmp, node.condition)) calc(tmp, node.body);
+	// ctx.memory.restore();
 	return null;
 }
 
 function calcFor(ctx, node) {
+	// ctx.memory.save();
 	const tmp = new Context(ctx);
 	for(calc(tmp, node.init); toValue(tmp, node.cond); calc(tmp, node.incr)) {
 		calc(tmp, node.body);
 	}
+	// ctx.memory.restore();
 	return null;
 }
 
@@ -76,6 +80,7 @@ function calc(ctx, node) {
 	if(node.type === "op") return calcOperator(ctx, node);
 	if(node.type === "function") return calcFunction(ctx, node);
 	if(node.type === "declareVariable") return declareVariable(ctx, node);
+	if(node.type === "block") return interpret(node.content, ctx, false);
 	if(node.value === "if") return calcIf(ctx, node);
 	if(node.value === "while") return calcWhile(ctx, node);
 	if(node.value === "for") return calcFor(ctx, node);
@@ -104,6 +109,7 @@ function toValue(ctx, node) {
 }
 
 function interpret(nodes, ctx, base = true) {
+	// ctx.memory.save();
 	let res = null;
 	for(let i of nodes) {
 		if(i.type === "block") {
@@ -112,6 +118,7 @@ function interpret(nodes, ctx, base = true) {
 			res = calc(ctx, i);
 		}
 	}
+	// ctx.memory.restore();
 	if(base) return toValue(ctx, res);
 	return res;
 }

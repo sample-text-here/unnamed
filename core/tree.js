@@ -8,6 +8,11 @@ const top = arr => arr[arr.length - 1];
 const node = (type, value) => ({ type, value });
 const opNode = (op, args) => ({ type: "op", op, args });
 
+// remove stop tokens
+function burnStops(tokens) {
+	while(tokens.peek()?.type === "stop") tokens.next();
+}
+
 // get the number of arguments from an operator type
 function numArgs(type) {
 	if(type.startsWith("unary")) return 1;
@@ -183,7 +188,7 @@ function readVariable(tokens) {
 		const next = tokens.next();
 		if(next.type === "stop") break;
 	}
-	
+
 	return { type: "declareVariable", modifiers, varType, declarations };
 
 	function readType() {
@@ -230,6 +235,7 @@ function read(tokens) {
 function generate(tokens) {
 	const parts = [];
 	while(!tokens.done()) {
+		burnStops(tokens);
 		if(tokens.peek()?.value === '}') break;
 		parts.push(read(tokens));
 	}

@@ -16,7 +16,7 @@ const baseTypes = {
 };
 
 for(let type in baseTypes) {
-	const size = parseInt(type.slice(1));
+	const size = parseInt(type.slice(1)) / 8;
 	types.set(type, { size, access: baseTypes[type] })
 }
 

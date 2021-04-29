@@ -1,0 +1,7 @@
+u32 a = 1, b = 1, c;
+for(u8 i = 0; i < 20; i++) {
+	c = a + b;
+	a = b;
+	b = c;
+	print(a);
+}
