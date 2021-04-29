@@ -184,6 +184,10 @@ function readVariable(tokens) {
 	const declarations = [];
 	while(tokens.peek()) {
 		declarations.push(readExpression(tokens));
+		if(!top(declarations)) {
+			declarations.pop();
+			break;
+		}
 		tokens.i--;
 		const next = tokens.next();
 		if(next.type === "stop") break;
@@ -239,6 +243,7 @@ function generate(tokens) {
 		if(tokens.peek()?.value === '}') break;
 		parts.push(read(tokens));
 	}
+	tokens.next();
 	return parts;
 }
 

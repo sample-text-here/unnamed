@@ -40,20 +40,18 @@ function calcIf(ctx, node) {
 }
 
 function calcWhile(ctx, node) {
-	// ctx.memory.save();
 	const tmp = new Context(ctx);
 	while(toValue(tmp, node.condition)) calc(tmp, node.body);
-	// ctx.memory.restore();
+	tmp.dispose();
 	return null;
 }
 
 function calcFor(ctx, node) {
-	// ctx.memory.save();
 	const tmp = new Context(ctx);
 	for(calc(tmp, node.init); toValue(tmp, node.cond); calc(tmp, node.incr)) {
 		calc(tmp, node.body);
 	}
-	// ctx.memory.restore();
+	tmp.dispose();
 	return null;
 }
 
@@ -109,16 +107,16 @@ function toValue(ctx, node) {
 }
 
 function interpret(nodes, ctx, base = true) {
-	// ctx.memory.save();
 	let res = null;
 	for(let i of nodes) {
 		if(i.type === "block") {
-			res = interpret(i.content, new Context(ctx), false);
+			const tmp = new Context(ctx);
+			res = interpret(i.content, tmp, false);
+			tmp.dispose();
 		} else {
 			res = calc(ctx, i);
 		}
 	}
-	// ctx.memory.restore();
 	if(base) return toValue(ctx, res);
 	return res;
 }

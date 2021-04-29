@@ -21,6 +21,7 @@ class Context {
 		if(parent instanceof Context) {
 			this.parent = parent;
 			this.memory = parent.memory;
+			this.memory.save();
 		} else {
 			this.memory = parent;
 		}
@@ -41,6 +42,8 @@ class Context {
 			throw "unknown variable " + name;
 		}
 	}
+
+	dispose() { this.memory.restore() }
 }
 
 // strip comments from a token list
