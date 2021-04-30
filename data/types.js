@@ -15,9 +15,18 @@ const baseTypes = {
 	"f64": "DoubleBE",
 };
 
+function generate(type) {
+	const access = baseTypes[type];
+	return {
+		access,
+		read: buffer => buffer["read" + access](),
+		write: (buffer, value) => buffer["write" + access](value),
+	};
+}
+
 for(let type in baseTypes) {
 	const size = parseInt(type.slice(1)) / 8;
-	types.set(type, { size, access: baseTypes[type] })
+	types.set(type, { size, ...generate(type) });
 }
 
 const aliases = {

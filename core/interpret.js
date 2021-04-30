@@ -20,7 +20,8 @@ function getNames(nodes) {
 
 function declareVariable(ctx, node) {
 	for(let name of getNames(node.declarations)) {
-		ctx.alloc(name, new Variable(types.get(node.varType)));
+		const type = types.get(node.varType);
+		ctx.alloc(name, type);
 	}
 
 	for(let i of node.declarations) {

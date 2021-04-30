@@ -23,66 +23,57 @@ class Memory {
 	restore() { this.offset = this.frames.pop() }
 }
 
-// basic structure for manipulating data
-class Data {
-	constructor() {
-		this.memory = null;
+// structure for holding numbers
+class Variable {
+	constructor(memory, type) {
+		this.type = type;
+		this.memory = memory.alloc(type.size);
 	}
 
-	init(memory) {
-		if(this.memory !== null) throw "memory already allocated";
-		this.memory = memory.alloc(this.size);
+	read() {
+		return this.type.read(this.memory);
 	}
 
-	assertMemory() {
-		if(this.memory === null) throw "no memory allocated";
+	write(val) {
+		this.type.write(this.memory, val);
 	}
 }
 
-// structure for holding numbers
-class Variable extends Data {
-	constructor(type) {
-		super();
-		this.size = type.size;
+// lists of data
+class Arrayy {
+	constructor(type, length) {
+		this.size = type.size * length;
+		this.length = length;
 		this.type = type;
 	}
+
+	each(buffer, func) {
+		const { size } = this.type;
+		let offset = 0;
+		for(let i = 0; i < this.length; i++) {
+			const slice = buffer.slice(offset, offset += size);
+			func(slice, i);
+		}
+	}
 	
-	read() {
-		this.assertMemory();
-		return this.memory["read" + this.type.access]();
+	read(buffer) {
+		const arr = [];
+		this.each(buffer, slice => {
+			arr.push(this.type.read(slice));
+		});
+		return arr;
 	}
 
-	write(value) {
-		this.assertMemory();
-		this.memory["write" + this.type.access](value);
+	write(buffer, value) {
+		if(!(value instanceof Array)) throw "cannot write array";
+		if(value.length !== this.length) throw "incorrect length";
+		this.each(buffer, (slice, i) => {
+			this.type.write(slice, value[i]);
+		});
 	}
 }
 
 // will reimplement when needed
-// 100% legit array
-// class Arrey {
-	// constructor(type, length) {
-		// this.type = type;
-		// this.length = length;
-		// this.memory = null;
-	// }
-// 
-	// attach(memory) {
-		// if(this.memory !== null) throw "memory already allocated";
-		// this.memory = memory.alloc(this.type.size * this.length);
-	// }
-	// 
-	// read(index) {
-		// if(this.memory === null) throw "no memory allocated";
-		// return this.memory["read" + this.type.access](this.type.size * index);
-	// }
-// 
-	// write(index, value) {
-		// if(this.memory === null) throw "no memory allocated";
-		// this.memory["write" + this.type.access](value, this.type.size * index);
-	// }
-// }
-
 // class Struct {
 	// constructor() {
 		// this.parts = new Map();
@@ -120,5 +111,5 @@ class Variable extends Data {
 	// }
 // }
 
-// module.exports = { Memory, Variable, Arrey, Struct };
-module.exports = { Memory, Variable };
+// module.exports = { Memory, Variable, Arayy, Struct };
+module.exports = { Memory, Variable, Arrayy };

@@ -2,6 +2,7 @@
 const EventEmmitter = require("events");
 const { color } = require("../data/color.js");
 const { usefulIfSingle } = require("../data/ops.js");
+const { Variable } = require("../data/memory.js");
 
 // iterate over an array and keep its index
 class Generator {
@@ -28,9 +29,9 @@ class Context {
 		this.allocs = new Map();
 	}
 
-	alloc(name, value) {
-		value.init(this.memory);
-		this.allocs.set(name, value);
+	alloc(name, type) {
+		const variable = new Variable(this.memory, type);
+		this.allocs.set(name, variable);
 	}
 	
 	get(name) {

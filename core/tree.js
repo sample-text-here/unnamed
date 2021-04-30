@@ -30,7 +30,7 @@ function readExpression(list) {
 
 	while(!list.done()) {
 		const token = list.next();
-		if(token.type === "word") {	
+		if(token.type === "word") {
 			if(unary === "post") throw "extra variable";
 			stack.push(node("var", token.value));
 			unary = "post";
@@ -70,7 +70,22 @@ function readExpression(list) {
 			}
 			unary = "pre";
 			depth--;
-			if(depth === 0 && list.peek()?.type !== "op") break;
+			if(depth === 0 && list.peek()?.type !== "symbol") break;
+		} else if(token.value === "[") {
+			stack.push({ type: "arraySep" });
+			unary = "pre";
+			depth++;
+		} else if(token.value === "]") {
+			const values = [];
+			while(stack.length > 0 && top(stack).type !== "arraySep") {
+				while(top(stack)?.type === "spacer") stack.pop();
+				values.push(stack.pop());
+			}
+			if(top(stack).type !== "arraySep") throw "unterminated array";
+			stack.pop();
+			stack.push({ type: "array", values: values.reverse() });
+			unary = "post";
+			depth--;
 		} else if(token.type === "symbol") {
 			const thisOp = findOp(token.value);
 			let prevOp = top(opStack);
@@ -240,6 +255,7 @@ function generate(tokens) {
 	const parts = [];
 	while(!tokens.done()) {
 		burnStops(tokens);
+		if(tokens.done()) break;
 		if(tokens.peek()?.value === '}') break;
 		parts.push(read(tokens));
 	}
@@ -248,21 +264,3 @@ function generate(tokens) {
 }
 
 module.exports = generate;
-
-/*
-// array code, removed for now
-else if(token.value === "[") {
-	stack.push({ type: "arraySep" });
-	unary = "pre";
-} else if(token.value === "]") {
-	const values = [];
-	while(stack.length > 0 && top(stack).type !== "arraySep") {
-		while(top(stack).type === "spacer") stack.pop();
-		values.push(stack.pop());
-	}
-	if(top(stack).type !== "arraySep") throw "unterminated array";
-	stack.pop();
-	stack.push({ type: "array", values: values.reverse() });
-	unary = "post";
-} 
-*/
