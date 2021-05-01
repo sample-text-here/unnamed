@@ -22,8 +22,7 @@ function numArgs(type) {
 }
 
 // the main generator; read an expression
-function readExpression(list) {
-	const stack = [];
+function readExpression(list, stack = []) {
 	const opStack = [];
 	let unary = "pre";
 	let depth = 0;
@@ -72,6 +71,7 @@ function readExpression(list) {
 			depth--;
 			if(depth === 0 && list.peek()?.type !== "symbol") break;
 		} else if(token.value === "[") {
+			// console.log(top(stack)?.type === "var")
 			stack.push({ type: "arraySep" });
 			unary = "pre";
 			depth++;
@@ -198,11 +198,15 @@ function readVariable(tokens) {
 	const { modifiers, varType } = readType();
 	const declarations = [];
 	while(tokens.peek()) {
-		declarations.push(readExpression(tokens));
-		if(!top(declarations)) {
-			declarations.pop();
-			break;
+		const name = tokens.next();
+		if(name.type !== "word") throw "invalid var name";
+		name.type = "var"
+		const declaration = { name: name.value };
+		if(tokens.peek()?.value === "[") declaration.array = readArray();
+		if(tokens.peek()?.value === "=") {
+			declaration.init = readExpression(tokens, [name]);
 		}
+		declarations.push(declaration);
 		tokens.i--;
 		const next = tokens.next();
 		if(next.type === "stop") break;
@@ -221,6 +225,22 @@ function readVariable(tokens) {
 		}
 		tokens.i--;
 		return { modifiers, varType };
+	}
+
+	function readArray() {
+		const arr = [];
+		while(tokens.peek()?.value === "[") {
+			const slice = [];
+			while(tokens.peek() && tokens.peek().value !== "]") {
+				slice.push(tokens.next());
+			}
+			if(!tokens.peek()) throw "missing ]";
+			slice.push(tokens.next());
+			const parsed = readExpression(new Generator(slice));
+			arr.push(...parsed.values);
+		}
+		return arr;
+		
 	}
 }
 

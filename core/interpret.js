@@ -2,32 +2,25 @@
 const ops = require("../data/ops.js");
 const funcs = require("../data/funcs.js");
 const types = require("../data/types.js");
-const { Memory, Variable, Arrey } = require("../data/memory.js");
+const { Memory, Variable, Arrayy } = require("../data/memory.js");
 const { Context, pack } = require("./util.js");
 
-// get new variable declarations
-function getNames(nodes) {
-	const names = [];
-	for(let i of nodes) {
-		if(i.type === "var") {
-			names.push(i.value);
-		} else if(i.type === "op") {
-			names.push(...getNames(i.args));
+function declareVariable(ctx, node) {
+	const type = types.get(node.varType);
+	for(let i of node.declarations) {
+		if(i.array) {
+			const mapped = i.array.map(i => toValue(ctx, i));
+			let arrType = type;
+			for(let i of mapped) arrType = new Arrayy(arrType, i);
+			ctx.alloc(i.name, arrType);
+		} else {
+			ctx.alloc(i.name, type);
+		}
+		if(i.init) {
+			calcOperator(ctx, i.init);
 		}
 	}
-	return names;
-}
 
-function declareVariable(ctx, node) {
-	for(let name of getNames(node.declarations)) {
-		const type = types.get(node.varType);
-		ctx.alloc(name, type);
-	}
-
-	for(let i of node.declarations) {
-		if(i.type === "op") calcOperator(ctx, i);
-	}
-	
 	return pack(null);
 }
 
@@ -95,6 +88,7 @@ function toValue(ctx, node) {
 		case "number":
 		case "string":
 		case "boolean": return node.value;
+		case "array": return node.values.map(i => toValue(ctx, i))
 		case "var": return ctx.get(node.value).read();
 		case "op": return toValue(ctx, calcOperator(ctx, node));
 		case "function": return toValue(ctx, calcFunction(ctx, node));
@@ -102,7 +96,6 @@ function toValue(ctx, node) {
 		case "if": return calcIf(ctx, node);
 		case "while": return calcWhile(ctx, node);
 		case "for": return calcFor(ctx, node);
-		// case "array": // TODO
 	}
 	throw "idk how to read that";
 }

@@ -30,6 +30,7 @@ class Context {
 	}
 
 	alloc(name, type) {
+		if(this.allocs.has(name)) throw "already exists";
 		const variable = new Variable(this.memory, type);
 		this.allocs.set(name, variable);
 	}
@@ -85,6 +86,9 @@ function format(value) {
 		return color(value, "green");
 	} else if(typeof value === "boolean") {
 		return color(value, "yellow");
+	} else if(value instanceof Array) {
+		const str = value.map(i => format(i)).join(", ");
+		return `[${str}]`;
 	} else {
 		return value;
 	}
