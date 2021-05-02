@@ -27,7 +27,7 @@ class Memory {
 class Variable {
 	constructor(memory, type) {
 		this.type = type;
-		this.memory = memory.alloc(type.size);
+		this.memory = memory;
 	}
 
 	read() {
@@ -59,7 +59,7 @@ class Arrayy {
 	read(buffer) {
 		const arr = [];
 		this.each(buffer, slice => {
-			arr.push(this.type.read(slice));
+			arr.push(new Variable(slice, this.type));
 		});
 		return arr;
 	}
@@ -68,7 +68,7 @@ class Arrayy {
 		if(!(value instanceof Array)) throw "cannot write array";
 		if(value.length !== this.length) throw "incorrect length";
 		this.each(buffer, (slice, i) => {
-			this.type.write(slice, value[i]);
+			value[i].write(slice);
 		});
 	}
 }

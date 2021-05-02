@@ -20,7 +20,6 @@ function declareVariable(ctx, node) {
 			calcOperator(ctx, i.init);
 		}
 	}
-
 	return pack(null);
 }
 
@@ -51,17 +50,37 @@ function calcFor(ctx, node) {
 
 function calcFunction(ctx, node) {
 	if(!funcs.hasOwnProperty(node.name)) throw "unknown function";
-	const args = node.args.map(i => toValue(ctx, calc(ctx, i)));
+	const args = node.args.map(i => toValue(ctx, i));
 	return pack(funcs[node.name](...args));
+}
+
+function calcAccess(ctx, node) {
+	const path = node.path.map(i => toValue(ctx, i));
+	let what = getWhat();
+	for(let i of path) {
+		if(what instanceof Variable) {
+			what = what.read()[i];
+		} else {
+			what = what[i];
+		}
+	}
+	if(what === null || what === undefined) throw "no";
+	return { type: "var", variable: what };
+
+	function getWhat() {
+		const res = calc(ctx, node.what);
+		if(res.type === "var") return res.variable;
+		return toValue(ctx, res);
+	}
 }
 
 function calcOperator(ctx, node) {
 	if(ops.calc.hasOwnProperty(node.op)) {
 		const args = node.args.map(i => toValue(ctx, i));
 		return pack(ops.calc[node.op](...args));
-	} else if(ops.advcalc.hasOwnProperty(node.op)) {
+	} else if(ops.calcRaw.hasOwnProperty(node.op)) {
 		const args = node.args.map(i => calc(ctx, i));
-		return pack(ops.advcalc[node.op](ctx, ...args));
+		return pack(ops.calcRaw[node.op](...args));
 	} else {
 		throw "unimplemented op " + node.op;
 	}
@@ -69,14 +88,24 @@ function calcOperator(ctx, node) {
 
 // reduce a node
 function calc(ctx, node) {
-	if(node.type === "op") return calcOperator(ctx, node);
-	if(node.type === "function") return calcFunction(ctx, node);
-	if(node.type === "declareVariable") return declareVariable(ctx, node);
-	if(node.type === "block") return interpret(node.content, ctx, false);
-	if(node.value === "if") return calcIf(ctx, node);
-	if(node.value === "while") return calcWhile(ctx, node);
-	if(node.value === "for") return calcFor(ctx, node);
-	// if(node.type === "declareFunction") return declareFunction(ctx, node);
+	switch(node.type) {
+		case "op": return calcOperator(ctx, node);
+		case "function": return calcFunction(ctx, node);
+		case "block": return interpret(node.content, ctx, false);
+		case "access":  return calcAccess(ctx, node);
+		case "declareVariable": return declareVariable(ctx, node);
+	}
+	switch(node.value) {
+		case "if": return calcIf(ctx, node);
+		case "while": return calcWhile(ctx, node);
+		case "for": return calcFor(ctx, node);
+	}
+	if(node.type === "var" && !node.variable) {
+		return {
+			type: "var",
+			variable: ctx.get(node.value),
+		};
+	}
 	return node;
 }
 
@@ -89,15 +118,22 @@ function toValue(ctx, node) {
 		case "string":
 		case "boolean": return node.value;
 		case "array": return node.values.map(i => toValue(ctx, i))
-		case "var": return ctx.get(node.value).read();
 		case "op": return toValue(ctx, calcOperator(ctx, node));
+		case "access": return toValue(ctx, calcAccess(ctx, node));
 		case "function": return toValue(ctx, calcFunction(ctx, node));
 		case "block": return interpret(node.content, ctx, false);
 		case "if": return calcIf(ctx, node);
 		case "while": return calcWhile(ctx, node);
 		case "for": return calcFor(ctx, node);
+		case "var": return readVar(node.variable || ctx.get(node.value));
 	}
 	throw "idk how to read that";
+
+	function readVar(variable) {
+		const read = variable.read();
+		if(read instanceof Array) return read.map(readVar);
+		return read;
+	}
 }
 
 function interpret(nodes, ctx, base = true) {

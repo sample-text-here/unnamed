@@ -67,25 +67,42 @@ function readExpression(list, stack = []) {
 				if(top(stack).type === "funcSep") stack.pop();
 				stack.push({ type: "function", name: op.name, args: args.reverse() });
 			}
-			unary = "pre";
+			unary = "post";
 			depth--;
-			if(depth === 0 && list.peek()?.type !== "symbol") break;
+			if(done()) break;
 		} else if(token.value === "[") {
-			// console.log(top(stack)?.type === "var")
-			stack.push({ type: "arraySep" });
+			if(unary === "post") {
+				stack.push({ type: "accessSep" });
+			} else {
+				stack.push({ type: "arraySep" });
+			}
 			unary = "pre";
 			depth++;
 		} else if(token.value === "]") {
 			const values = [];
-			while(stack.length > 0 && top(stack).type !== "arraySep") {
+			const seps = ["arraySep", "accessSep"];
+			while(stack.length > 0 && !seps.includes(top(stack).type)) {
 				while(top(stack)?.type === "spacer") stack.pop();
-				values.push(stack.pop());
+				if(top(stack)) values.push(stack.pop());
 			}
-			if(top(stack).type !== "arraySep") throw "unterminated array";
-			stack.pop();
-			stack.push({ type: "array", values: values.reverse() });
+			const type = stack.pop()?.type;
+			if(type === "accessSep") {
+				stack.push({
+					type: "access",
+					path: values.reverse(),
+					what: stack.pop(),
+				});
+			} else if(type === "arraySep") {
+				stack.push({
+					type: "array", 
+					values: values.reverse(),
+				});
+			} else {
+				throw "missing ]";
+			}
 			unary = "post";
 			depth--;
+			if(done()) break;
 		} else if(token.type === "symbol") {
 			const thisOp = findOp(token.value);
 			let prevOp = top(opStack);
@@ -99,6 +116,7 @@ function readExpression(list, stack = []) {
 			opStack.push(thisOp);
 			unary = "pre";
 		} else if(token.type === "stop") {
+			list.i--;
 			break;
 		} else if(token.type === "block") {
 			list.i--;
@@ -135,6 +153,14 @@ function readExpression(list, stack = []) {
 			args.push(stack.pop());
 		}
 		stack.push(opNode(op.internal ?? op.name, args.reverse()));
+	}
+
+	function done() {
+		if(depth !== 0) return false;
+		const next = list.peek();
+		if(!next) return true;
+		if(next.type !== "symbol" && next.value !== "[") return true;
+		return false;
 	}
 }
 
@@ -182,7 +208,9 @@ function readKeyword(type, tokens) {
 		tokens.next();
 		const gen = new Generator(filtered.slice(1));
 		node.init = read(gen);
+		burnStops(gen);
 		node.cond = read(gen);
+		burnStops(gen);
 		node.incr = read(gen);
 		node.body = read(tokens);
 		if(!node.init) throw "no initializer";
@@ -200,16 +228,18 @@ function readVariable(tokens) {
 	while(tokens.peek()) {
 		const name = tokens.next();
 		if(name.type !== "word") throw "invalid var name";
-		name.type = "var"
+		name.type = "var";
 		const declaration = { name: name.value };
 		if(tokens.peek()?.value === "[") declaration.array = readArray();
 		if(tokens.peek()?.value === "=") {
 			declaration.init = readExpression(tokens, [name]);
 		}
 		declarations.push(declaration);
-		tokens.i--;
-		const next = tokens.next();
+
+		const next = tokens.peek();
 		if(next.type === "stop") break;
+		if(next.value === ",") tokens.next();
+		burnStops(tokens);
 	}
 
 	return { type: "declareVariable", modifiers, varType, declarations };
@@ -240,7 +270,6 @@ function readVariable(tokens) {
 			arr.push(...parsed.values);
 		}
 		return arr;
-		
 	}
 }
 

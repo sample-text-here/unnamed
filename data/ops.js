@@ -212,29 +212,24 @@ const calc = {
 	"-": (...args) => args.length === 1 ? -args[0] : args[0] - args[1],
 };
 
-// helpers for advcalc
-function getVar(ctx, node) {
-	if(node.type !== "var") throw "cant increment literal";
-	return ctx.get(node.value);
+// helpers for calcRaw
+function getVal(node) {
+	if(!node) return null;
+	if(node.type === "var") return node.variable.read();
+	return node.value;
 }
 
 function change(func) {
-	return function(ctx, a, b) {
-		const variable = getVar(ctx, a);
-		const val = func(variable.read(), getVal(ctx, b));
-		variable.write(val);
+	return function(a, b) {
+		if(a.type !== "var") throw "invalid left hand side";
+		const val = b ? func(getVal(a), getVal(b)) : func(getVal(a));
+		a.variable.write(val);
 		return val;
-	}
-
-	function getVal(ctx, node) {
-		if(!node) return null;
-		if(node.type === "var") return getVar(ctx, node).read();
-		return node.value;
 	}
 }
 
 // operators which modify variables
-const advcalc = {
+const calcRaw = {
 	"=": change((a, b) => b),
 	"+=": change((a, b) => a + b),
 	"-=": change((a, b) => a - b),
@@ -247,18 +242,16 @@ const advcalc = {
 	"|=": change((a, b) => a | b),
 	"&&=": change((a, b) => a && b),
 	"||=": change((a, b) => a || b),
-	"incrPre": change(a => a + 1),
-	"decrPre": change(a => a - 1),
-	"incrPost": (ctx, a) => {
-		const variable = getVar(ctx, a);
-		const val = variable.read();
-		variable.write(val + 1);
+	"incrPre": change((a) => a + 1),
+	"decrPre": change((a) => a + 1),
+	"incrPost": (a) => {
+		const val = getVal(a);
+		a.variable.write(val + 1);
 		return val;
 	},
-	"decrPost": (ctx, a) => {
-		const variable = getVar(ctx, a);
-		const val = variable.read();
-		variable.write(val - 1);
+	"decrPost": (a) => {
+		const val = getVal(a);
+		a.variable.write(val - 1);
 		return val;
 	},
 };
@@ -271,4 +264,4 @@ const usefulIfSingle = [
 	"|=",	"^=",	"||=",	"&&="
 ];
 
-module.exports = { ops, calc, advcalc, usefulIfSingle };
+module.exports = { ops, calc, calcRaw, usefulIfSingle };

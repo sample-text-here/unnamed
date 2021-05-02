@@ -31,7 +31,7 @@ class Context {
 
 	alloc(name, type) {
 		if(this.allocs.has(name)) throw "already exists";
-		const variable = new Variable(this.memory, type);
+		const variable = new Variable(this.memory.alloc(type.size), type);
 		this.allocs.set(name, variable);
 	}
 	
